@@ -539,9 +539,30 @@ export default function Page() {
       ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR)
       ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR)
 
-      const onCanPlay = () => {
+      let resolved = false
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true
+          console.warn(`[Video] Timeout loading: ${scene.videoSrc}`)
+          video.removeEventListener('canplay', onCanPlay)
+          video.removeEventListener('error', onError)
+          video.pause()
+          video.src = ''
+          video.remove()
+          resolve({ video: null as any, ready: false, duration: 0, currentTime: 0, texture: null })
+        }
+      }, 10000)
+
+      const cleanup = () => {
+        clearTimeout(timeout)
         video.removeEventListener('canplay', onCanPlay)
         video.removeEventListener('error', onError)
+      }
+
+      const onCanPlay = () => {
+        if (resolved) return
+        resolved = true
+        cleanup()
         video.currentTime = scene.videoTimeStart || 0
         video.play().catch(() => { /* autoplay may be blocked */ })
 
@@ -559,9 +580,13 @@ export default function Page() {
       }
 
       const onError = () => {
-        video.removeEventListener('canplay', onCanPlay)
-        video.removeEventListener('error', onError)
+        if (resolved) return
+        resolved = true
+        cleanup()
         console.warn(`[Video] Failed to load: ${scene.videoSrc}`)
+        video.pause()
+        video.src = ''
+        video.remove()
         resolve({ video: null as any, ready: false, duration: 0, currentTime: 0, texture: null })
       }
 
@@ -748,18 +773,43 @@ export default function Page() {
     }
   }, [])
 
+  // Separate resize effect - runs once on mount and on window resize
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || !gl) return
+
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const width = canvas.clientWidth
+      const height = canvas.clientHeight
+      if (width > 0 && height > 0) {
+        canvas.width = width * dpr
+        canvas.height = height * dpr
+        gl.viewport(0, 0, canvas.width, canvas.height)
+      }
+    }
+
+    // Initial resize after layout
+    resize()
+
+    // ResizeObserver for reliable sizing
+    const ro = new ResizeObserver(resize)
+    ro.observe(canvas)
+
+    window.addEventListener('resize', resize)
+
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', resize)
+    }
+  }, [gl])
+
+  // Animation loop - separate from resize
   useEffect(() => {
     if (!gl || !assetsReady) return
 
     const canvas = canvasRef.current
     if (!canvas) return
-
-    const resize = () => {
-      const dpr = Math.min(window.devicePixelRatio || 1, 2)
-      canvas.width = canvas.clientWidth * dpr
-      canvas.height = canvas.clientHeight * dpr
-      gl.viewport(0, 0, canvas.width, canvas.height)
-    }
 
     let frameCount = 0
     const animate = () => {
@@ -768,12 +818,9 @@ export default function Page() {
       rafRef.current = requestAnimationFrame(animate)
     }
 
-    resize()
-    window.addEventListener('resize', resize)
     rafRef.current = requestAnimationFrame(animate)
 
     return () => {
-      window.removeEventListener('resize', resize)
       cancelAnimationFrame(rafRef.current!)
     }
   }, [gl, scrollProgress, currentScene, assets, assetsReady])
@@ -947,7 +994,7 @@ function drawVideoFrame(
   ctx.uniform2f(ctx.getUniformLocation(prog, 'u_resolution'), w, h)
   ctx.uniform1f(ctx.getUniformLocation(prog, 'u_time'), frame * 0.016)
 
-  ctx.activeTexture(ctx.TEXTURE_2D)
+  ctx.activeTexture(ctx.TEXTURE0)
   ctx.bindTexture(ctx.TEXTURE_2D, asset.texture)
   ctx.uniform1i(ctx.getUniformLocation(prog, 'u_texture'), 0)
 
@@ -956,7 +1003,7 @@ function drawVideoFrame(
     ctx.uniform1f(uBlendLoc, 0.0)
   }
 
-  ctx.drawArrays(ctx.TEXTURE_2D, 0, 4)
+  ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4)
 }
 
 function drawProceduralFallback(
