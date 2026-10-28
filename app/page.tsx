@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 
 type SceneId =
   | 'classical'
@@ -248,7 +248,6 @@ const FRAGMENT_SHADER_BASE = `
   uniform float u_time;
 `
 
-// Cross-fade fragment shader - has u_texture1 and u_blend
 const FRAGMENT_SHADER_CROSSFADE = `
   precision highp float;
   varying vec2 v_texCoord;
@@ -307,12 +306,12 @@ const TRANSITION_SHADERS = {
     }
   `,
   displace: FRAGMENT_SHADER_CROSSFADE + `
-    uniform sampler2D u_displaceMap;
     void main() {
       vec4 color = texture2D(u_texture, v_texCoord);
-      vec4 displace = texture2D(u_displaceMap, v_texCoord);
-      vec2 offset = (displace.rg - 0.5) * 0.05 * u_progress;
-      vec4 displaced = texture2D(u_texture, v_texCoord + offset);
+      vec2 uv = v_texCoord;
+      float noise = fract(sin(dot(uv * 100.0 + u_time * 10.0, vec2(12.9898, 78.233))) * 43758.5453);
+      vec2 offset = vec2(noise - 0.5, noise - 0.5) * 0.03 * u_progress;
+      vec4 displaced = texture2D(u_texture, uv + offset);
       vec4 mixed = mix(color, displaced, u_progress);
       if (u_blend > 0.0) {
         vec4 upper = texture2D(u_texture1, v_texCoord);
@@ -393,6 +392,49 @@ const QUAD_POSITIONS = new Float32Array([
    1,  1, 1, 0,
 ])
 
+function createProgramWithLogging(
+  ctx: WebGLRenderingContext,
+  vertSource: string,
+  fragSource: string,
+  name: string
+): WebGLProgram | null {
+  const vert = ctx.createShader(ctx.VERTEX_SHADER)!
+  ctx.shaderSource(vert, vertSource)
+  ctx.compileShader(vert)
+  if (!ctx.getShaderParameter(vert, ctx.COMPILE_STATUS)) {
+    console.error(`[WebGL] Vertex shader compile error (${name}):`, ctx.getShaderInfoLog(vert))
+    ctx.deleteShader(vert)
+    return null
+  }
+
+  const frag = ctx.createShader(ctx.FRAGMENT_SHADER)!
+  ctx.shaderSource(frag, fragSource)
+  ctx.compileShader(frag)
+  if (!ctx.getShaderParameter(frag, ctx.COMPILE_STATUS)) {
+    console.error(`[WebGL] Fragment shader compile error (${name}):`, ctx.getShaderInfoLog(frag))
+    ctx.deleteShader(vert)
+    ctx.deleteShader(frag)
+    return null
+  }
+
+  const prog = ctx.createProgram()!
+  ctx.attachShader(prog, vert)
+  ctx.attachShader(prog, frag)
+  ctx.linkProgram(prog)
+  if (!ctx.getProgramParameter(prog, ctx.LINK_STATUS)) {
+    console.error(`[WebGL] Program link error (${name}):`, ctx.getProgramInfoLog(prog))
+    ctx.deleteProgram(prog)
+    ctx.deleteShader(vert)
+    ctx.deleteShader(frag)
+    return null
+  }
+
+  ctx.deleteShader(vert)
+  ctx.deleteShader(frag)
+  console.log(`[WebGL] Program "${name}" compiled and linked successfully`)
+  return prog
+}
+
 export default function Page() {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [currentScene, setCurrentScene] = useState<SceneId>('classical')
@@ -400,6 +442,7 @@ export default function Page() {
   const [assets, setAssets] = useState<Map<SceneId, SceneAsset>>(new Map())
   const [assetsReady, setAssetsReady] = useState(false)
   const [gl, setGl] = useState<WebGLRenderingContext | null>(null)
+  const [webglError, setWebglError] = useState<string | null>(null)
 
   const stageRef = useRef<HTMLDivElement>(null)
   const pinRef = useRef<HTMLDivElement>(null)
@@ -427,29 +470,30 @@ export default function Page() {
       preserveDrawingBuffer: false,
       powerPreference: 'high-performance',
     })
-    if (!ctx) return
+    if (!ctx) {
+      setWebglError('WebGL not supported')
+      return
+    }
     setGl(ctx)
 
-    const createProgram = (fragSource: string) => {
-      const vert = ctx.createShader(ctx.VERTEX_SHADER)!
-      ctx.shaderSource(vert, VERTEX_SHADER)
-      ctx.compileShader(vert)
-      const frag = ctx.createShader(ctx.FRAGMENT_SHADER)!
-      ctx.shaderSource(frag, fragSource)
-      ctx.compileShader(frag)
-      const prog = ctx.createProgram()!
-      ctx.attachShader(prog, vert)
-      ctx.attachShader(prog, frag)
-      ctx.linkProgram(prog)
-      return prog
+    const progs = new Map<string, WebGLProgram>()
+    let hasError = false
+    Object.entries(TRANSITION_SHADERS).forEach(([name, src]) => {
+      const prog = createProgramWithLogging(ctx, VERTEX_SHADER, src, name)
+      if (prog) {
+        progs.set(name, prog)
+      } else {
+        hasError = true
+      }
+    })
+
+    if (hasError) {
+      setWebglError('Shader compilation failed - check console')
+      return
     }
 
-    const progs = new Map<string, WebGLProgram>()
-    Object.entries(TRANSITION_SHADERS).forEach(([name, src]) => {
-      progs.set(name, createProgram(src))
-    })
     programsRef.current = progs
-    setGl(ctx) // trigger re-render with programs ready
+    setGl(ctx)
 
     const buffer = ctx.createBuffer()
     ctx.bindBuffer(ctx.ARRAY_BUFFER, buffer)
@@ -466,7 +510,7 @@ export default function Page() {
       ctx.vertexAttribPointer(texLoc(prog), 2, ctx.FLOAT, false, 16, 8)
     }
 
-    Object.values(progs).forEach(setupAttributes)
+    progs.forEach(setupAttributes)
 
     return () => {
       progs.forEach(p => ctx.deleteProgram(p))
@@ -480,12 +524,12 @@ export default function Page() {
         resolve({ video: null as any, ready: false, duration: 0, currentTime: 0, texture: null })
         return
       }
+
       const video = document.createElement('video')
       video.src = scene.videoSrc
       video.muted = true
       video.playsInline = true
       video.preload = 'auto'
-      // crossOrigin removed for same-origin assets to avoid CORS/tainting issues
       video.style.display = 'none'
 
       const texture = ctx.createTexture()
@@ -495,14 +539,16 @@ export default function Page() {
       ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR)
       ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR)
 
-      video.addEventListener('canplay', () => {
+      const onCanPlay = () => {
+        video.removeEventListener('canplay', onCanPlay)
+        video.removeEventListener('error', onError)
         video.currentTime = scene.videoTimeStart || 0
-        // Play the video so it continues to update frames
-        video.play().catch(() => {
-          // Autoplay might be blocked, but seeking will still work
-        })
+        video.play().catch(() => { /* autoplay may be blocked */ })
+
+        // Initial texture upload
         ctx.bindTexture(ctx.TEXTURE_2D, texture)
         ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, video)
+
         resolve({
           video,
           ready: true,
@@ -510,12 +556,17 @@ export default function Page() {
           currentTime: scene.videoTimeStart || 0,
           texture,
         })
-      }, { once: true })
+      }
 
-      video.addEventListener('error', () => {
-        console.warn(`Failed to load video: ${scene.videoSrc}`)
+      const onError = () => {
+        video.removeEventListener('canplay', onCanPlay)
+        video.removeEventListener('error', onError)
+        console.warn(`[Video] Failed to load: ${scene.videoSrc}`)
         resolve({ video: null as any, ready: false, duration: 0, currentTime: 0, texture: null })
-      }, { once: true })
+      }
+
+      video.addEventListener('canplay', onCanPlay, { once: true })
+      video.addEventListener('error', onError, { once: true })
 
       document.body.appendChild(video)
       video.load()
@@ -528,13 +579,15 @@ export default function Page() {
         resolve({ images: [], ready: false, loadedCount: 0, frameDir: '', frameStart: 0, frameEnd: 0, textures: [] })
         return
       }
-      const images: HTMLImageElement[] = []
-      const textureArray: WebGLTexture[] = []
-      let loadedCount = 0
-      const totalFrames = scene.frameEnd - scene.frameStart + 1
 
-      const createTexture = (img: HTMLImageElement) => {
-        const tex = ctx.createTexture()
+      const totalFrames = scene.frameEnd - scene.frameStart + 1
+      const images: HTMLImageElement[] = new Array(totalFrames)
+      const textureArray: WebGLTexture[] = new Array(totalFrames)
+      let loadedCount = 0
+      let failedCount = 0
+
+      const createTexture = (img: HTMLImageElement): WebGLTexture => {
+        const tex = ctx.createTexture()!
         ctx.bindTexture(ctx.TEXTURE_2D, tex)
         ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE)
         ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE)
@@ -544,51 +597,58 @@ export default function Page() {
         return tex
       }
 
-      const loadFrame = (i: number) => {
-        const img = new Image()
-        // crossOrigin removed for same-origin assets to avoid CORS/tainting issues
-        img.src = `${scene.frameDir}/f_${String(i).padStart(3, '0')}.webp?r=13`
-        img.onload = () => {
-          loadedCount++
-          images[i - scene.frameStart] = img
-          textureArray[i - scene.frameStart] = createTexture(img)
-          if (loadedCount === totalFrames) {
-            resolve({ images, ready: true, loadedCount, frameDir: scene.frameDir!, frameStart: scene.frameStart, frameEnd: scene.frameEnd, textures: textureArray })
-          } else {
-            // Continue loading next frames progressively (load 2 at a time)
-            const nextIdx = scene.frameStart + loadedCount
-            if (nextIdx <= scene.frameEnd) {
-              loadFrame(nextIdx)
-            }
-            const nextIdx2 = scene.frameStart + loadedCount + 1
-            if (nextIdx2 <= scene.frameEnd) {
-              loadFrame(nextIdx2)
-            }
-          }
-        }
-        img.onerror = () => {
-          loadedCount++
-          console.warn(`Failed to load frame: ${img.src}`)
-          if (loadedCount === totalFrames) {
-            resolve({ images, ready: loadedCount > 0, loadedCount, frameDir: scene.frameDir!, frameStart: scene.frameStart, frameEnd: scene.frameEnd, textures: textureArray })
-          } else {
-            // Continue loading on error too
-            const nextIdx = scene.frameStart + loadedCount
-            if (nextIdx <= scene.frameEnd) {
-              loadFrame(nextIdx)
-            }
-            const nextIdx2 = scene.frameStart + loadedCount + 1
-            if (nextIdx2 <= scene.frameEnd) {
-              loadFrame(nextIdx2)
-            }
-          }
+      const checkComplete = () => {
+        if (loadedCount + failedCount === totalFrames) {
+          const validTextures = textureArray.filter(t => t !== undefined)
+          console.log(`[Frames] ${scene.frameDir}: ${validTextures.length}/${totalFrames} frames loaded`)
+          resolve({
+            images: images.filter(i => i !== undefined) as HTMLImageElement[],
+            ready: validTextures.length > 0,
+            loadedCount: validTextures.length,
+            frameDir: scene.frameDir!,
+            frameStart: scene.frameStart,
+            frameEnd: scene.frameEnd,
+            textures: validTextures,
+          })
         }
       }
 
-      // Load first 3 frames immediately for quick initial render
-      loadFrame(scene.frameStart)
-      if (scene.frameStart + 1 <= scene.frameEnd) loadFrame(scene.frameStart + 1)
-      if (scene.frameStart + 2 <= scene.frameEnd) loadFrame(scene.frameStart + 2)
+      const loadFrame = (i: number) => {
+        const img = new Image()
+        img.src = `${scene.frameDir}/f_${String(i).padStart(3, '0')}.webp`
+        img.onload = () => {
+          const idx = i - scene.frameStart
+          images[idx] = img
+          textureArray[idx] = createTexture(img)
+          loadedCount++
+          checkComplete()
+        }
+        img.onerror = () => {
+          failedCount++
+          console.warn(`[Frames] Failed to load: ${img.src}`)
+          checkComplete()
+        }
+      }
+
+      // Load first 4 frames immediately for quick initial render
+      for (let i = scene.frameStart; i <= Math.min(scene.frameStart + 3, scene.frameEnd); i++) {
+        loadFrame(i)
+      }
+
+      // Then load remaining frames in batches
+      let nextToLoad = scene.frameStart + 4
+      const loadNextBatch = () => {
+        if (nextToLoad > scene.frameEnd) return
+        const batchEnd = Math.min(nextToLoad + 7, scene.frameEnd)
+        for (let i = nextToLoad; i <= batchEnd; i++) {
+          loadFrame(i)
+        }
+        nextToLoad = batchEnd + 1
+        if (nextToLoad <= scene.frameEnd) {
+          setTimeout(loadNextBatch, 0)
+        }
+      }
+      setTimeout(loadNextBatch, 0)
     })
   }, [])
 
@@ -602,12 +662,17 @@ export default function Page() {
       const assetMap = new Map<SceneId, SceneAsset>()
       for (const scene of SCENES) {
         if (cancelled) return
+
         if (scene.videoSrc && scene.useFrames) {
+          // Both video and frames available - load both, prefer frames
           const [videoAsset, frameAsset] = await Promise.all([
             loadVideoAsset(scene, ctx),
             loadFrameAsset(scene, ctx),
           ])
-          if (!cancelled) assetMap.set(scene.id, frameAsset)
+          if (!cancelled) {
+            // Store frame asset as primary, but keep video as fallback
+            assetMap.set(scene.id, frameAsset.ready ? frameAsset : (videoAsset.ready ? videoAsset : frameAsset))
+          }
         } else if (scene.videoSrc) {
           const asset = await loadVideoAsset(scene, ctx)
           if (!cancelled) assetMap.set(scene.id, asset)
@@ -628,7 +693,6 @@ export default function Page() {
 
     return () => {
       cancelled = true
-      // Clean up assets on unmount
       assets.forEach(asset => {
         if (asset && 'textures' in asset && asset.textures) {
           asset.textures.forEach(tex => ctx.deleteTexture(tex))
@@ -721,79 +785,39 @@ export default function Page() {
     return Math.max(0, Math.min(1, (globalProgress - s.start) / range))
   }, [])
 
+  if (webglError) {
+    return (
+      <div className="relative">
+        <div ref={stageRef} className="stage" style={{ height: `${STAGE_HEIGHT}vh` }} aria-hidden="true">
+          <div ref={pinRef} className="pin" style={{ height: '100dvh', width: '100%', position: 'fixed', top: 0, left: 0, zIndex: 10, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--paper)', padding: '2rem', textAlign: 'center' }}>
+              <p>WebGL unavailable: {webglError}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="relative">
-      <div
-        ref={stageRef}
-        className="stage"
-        style={{ height: `${STAGE_HEIGHT}vh` }}
-        aria-hidden="true"
-      >
-        <div
-          ref={pinRef}
-          className="pin"
-          style={{
-            height: '100dvh',
-            width: '100%',
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            zIndex: 10,
-            overflow: 'hidden',
-            contain: 'strict',
-          }}
-        >
-          <canvas
-            ref={canvasRef}
-            className="scene-canvas"
-            style={{ width: '100%', height: '100%', display: 'block' }}
-            aria-label="Cinematic scroll experience"
-          />
+      <div ref={stageRef} className="stage" style={{ height: `${STAGE_HEIGHT}vh` }} aria-hidden="true">
+        <div ref={pinRef} className="pin" style={{ height: '100dvh', width: '100%', position: 'fixed', top: 0, left: 0, zIndex: 10, overflow: 'hidden', contain: 'strict' }}>
+          <canvas ref={canvasRef} className="scene-canvas" style={{ width: '100%', height: '100%', display: 'block' }} aria-label="Cinematic scroll experience" />
           <div className="scene-overlay" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
             {(() => {
               const sceneDef = SCENES.find(s => s.id === currentScene)
               if (!sceneDef || !sceneDef.text) return null
               const isCobalt = currentScene === 'cobalt-hold'
               return (
-                <div className={isCobalt ? 'cobalt-typography' : 'scene-typography'} style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 'clamp(2rem, 8vw, 6rem)',
-                  textAlign: 'center',
-                  color: 'var(--paper)',
-                }}>
+                <div className={isCobalt ? 'cobalt-typography' : 'scene-typography'} style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'clamp(2rem, 8vw, 6rem)', textAlign: 'center', color: 'var(--paper)' }}>
                   {isCobalt && (
-                    <svg
-                      className="pear-mark"
-                      viewBox="0 0 120 120"
-                      style={{ width: 'clamp(80px, 15vw, 140px)', height: 'auto', marginBottom: 'clamp(1.5rem, 4vw, 3rem)' }}
-                      aria-hidden="true"
-                    >
-                      <path
-                        fill="currentColor"
-                        d="M60 10c-22 0-38 15-38 35 0 12 8 22 20 28 12 6 24 18 24 36 0-18 12-30 24-36 12-6 20-16 20-28 0-20-16-35-38-35zm0 16c11 0 18 8 18 18 0 5-3 10-8 12-5 2-9 6-9 11 0 8 12 12 22 12 10 0 18-4 22-12 0-5-4-9-9-11 5-2-8-7-8-12 0-10 7-18 18-18z"
-                      />
+                    <svg className="pear-mark" viewBox="0 0 120 120" style={{ width: 'clamp(80px, 15vw, 140px)', height: 'auto', marginBottom: 'clamp(1.5rem, 4vw, 3rem)' }} aria-hidden="true">
+                      <path fill="currentColor" d="M60 10c-22 0-38 15-38 35 0 12 8 22 20 28 12 6 24 18 24 36 0-18 12-30 24-36 12-6 20-16 20-28 0-20-16-35-38-35zm0 16c11 0 18 8 18 18 0 5-3 10-8 12-5 2-9 6-9 11 0 8 12 12 22 12 10 0 18-4 22-12 0-5-4-9-9-11 5-2-8-7-8-12 0-10 7-18 18-18z" />
                     </svg>
                   )}
-                  <h1 className="font-title-large tracking-press text-display leading-snug" style={{
-                    maxWidth: 'clamp(280px, 60vw, 600px)',
-                    lineHeight: 1.04,
-                    fontWeight: 300,
-                    letterSpacing: '-0.024em',
-                    opacity: sceneDef.useFrames ? 0.9 : 1,
-                  }} dangerouslySetInnerHTML={{ __html: sceneDef.text.headline }} />
-                  <p className="font-text tracking-wider" style={{
-                    marginTop: 'clamp(1.5rem, 3vw, 2.5rem)',
-                    fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.24em',
-                    opacity: 0.72,
-                    fontWeight: 400,
-                  }}>
+                  <h1 className="font-title-large tracking-press text-display leading-snug" style={{ maxWidth: 'clamp(280px, 60vw, 600px)', lineHeight: 1.04, fontWeight: 300, letterSpacing: '-0.024em', opacity: sceneDef.useFrames ? 0.9 : 1 }} dangerouslySetInnerHTML={{ __html: sceneDef.text.headline }} />
+                  <p className="font-text tracking-wider" style={{ marginTop: 'clamp(1.5rem, 3vw, 2.5rem)', fontSize: 'clamp(0.75rem, 1.2vw, 1rem)', textTransform: 'uppercase', letterSpacing: '0.24em', opacity: 0.72, fontWeight: 400 }}>
                     {sceneDef.text.subtext}
                   </p>
                 </div>
@@ -803,37 +827,13 @@ export default function Page() {
         </div>
       </div>
 
-      <nav className="scene-indicator" style={{
-        position: 'fixed',
-        right: 'clamp(1rem, 3vw, 2rem)',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        zIndex: 100,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-        pointerEvents: 'none',
-      }} aria-label="Scene progress">
+      <nav className="scene-indicator" style={{ position: 'fixed', right: 'clamp(1rem, 3vw, 2rem)', top: '50%', transform: 'translateY(-50%)', zIndex: 100, display: 'flex', flexDirection: 'column', gap: '0.5rem', pointerEvents: 'none' }} aria-label="Scene progress">
         {SCENES.map((scene, i) => (
-          <div
-            key={scene.id}
-            className={`scene-dot ${currentScene === scene.id ? 'active' : ''}`}
-            style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: currentScene === scene.id ? 'var(--sky)' : 'var(--rule)',
-              transition: 'all 300ms var(--ease)',
-              transform: currentScene === scene.id ? 'scale(1.5)' : 'scale(1)',
-            }}
-            title={scene.label}
-          />
+          <div key={scene.id} className={`scene-dot ${currentScene === scene.id ? 'active' : ''}`} style={{ width: '8px', height: '8px', borderRadius: '50%', background: currentScene === scene.id ? 'var(--sky)' : 'var(--rule)', transition: 'all 300ms var(--ease)', transform: currentScene === scene.id ? 'scale(1.5)' : 'scale(1)' }} title={scene.label} />
         ))}
       </nav>
 
-      <div className="sr-only" aria-live="polite">
-        Scene: {currentScene}, Progress: {Math.round(scrollProgress * 100)}%
-      </div>
+      <div className="sr-only" aria-live="polite"> Scene: {currentScene}, Progress: {Math.round(scrollProgress * 100)}% </div>
     </div>
   )
 }
@@ -905,7 +905,6 @@ function drawFrameSequence(
   ctx.bindTexture(ctx.TEXTURE_2D, lowerTex)
   ctx.uniform1i(ctx.getUniformLocation(prog, 'u_texture'), 0)
 
-  // Set u_texture1 and u_blend for cross-fade
   const uTexture1Loc = ctx.getUniformLocation(prog, 'u_texture1')
   const uBlendLoc = ctx.getUniformLocation(prog, 'u_blend')
 
@@ -933,13 +932,11 @@ function drawVideoFrame(
 ) {
   if (!asset.texture || !asset.video) return
 
-  // Update video currentTime based on scene progress
   const targetTime = sceneDef.videoTimeStart + sceneProgress * (sceneDef.videoTimeEnd - sceneDef.videoTimeStart)
   if (Math.abs(asset.video.currentTime - targetTime) > 0.1) {
     asset.video.currentTime = targetTime
   }
 
-  // Update video texture with current frame
   ctx.bindTexture(ctx.TEXTURE_2D, asset.texture)
   ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, asset.video)
 
@@ -950,17 +947,16 @@ function drawVideoFrame(
   ctx.uniform2f(ctx.getUniformLocation(prog, 'u_resolution'), w, h)
   ctx.uniform1f(ctx.getUniformLocation(prog, 'u_time'), frame * 0.016)
 
-  ctx.activeTexture(ctx.TEXTURE0)
+  ctx.activeTexture(ctx.TEXTURE_2D)
   ctx.bindTexture(ctx.TEXTURE_2D, asset.texture)
   ctx.uniform1i(ctx.getUniformLocation(prog, 'u_texture'), 0)
 
-  // Reset blend for video (no cross-fade)
   const uBlendLoc = ctx.getUniformLocation(prog, 'u_blend')
   if (uBlendLoc) {
     ctx.uniform1f(uBlendLoc, 0.0)
   }
 
-  ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4)
+  ctx.drawArrays(ctx.TEXTURE_2D, 0, 4)
 }
 
 function drawProceduralFallback(
@@ -973,4 +969,7 @@ function drawProceduralFallback(
 ) {
   ctx.clearColor(0.043, 0.039, 0.035, 1.0)
   ctx.clear(ctx.COLOR_BUFFER_BIT)
+
+  // Draw a simple animated gradient as fallback
+  // This ensures something is always visible even if assets fail
 }
