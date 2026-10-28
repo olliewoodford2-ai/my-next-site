@@ -788,9 +788,7 @@ export default function Page() {
                     fontWeight: 300,
                     letterSpacing: '-0.024em',
                     opacity: sceneDef.useFrames ? 0.9 : 1,
-                  }}>
-                    {sceneDef.text.headline}
-                  </h1>
+                  }} dangerouslySetInnerHTML={{ __html: sceneDef.text.headline }} />
                   <p className="font-text tracking-wider" style={{
                     marginTop: 'clamp(1.5rem, 3vw, 2.5rem)',
                     fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
