@@ -44,3 +44,6 @@ next-env.d.ts
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Large research files
+research/collected_assets.zip
