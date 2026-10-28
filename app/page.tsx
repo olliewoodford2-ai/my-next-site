@@ -488,7 +488,7 @@ export default function Page() {
       video.muted = true
       video.playsInline = true
       video.preload = 'auto'
-      video.crossOrigin = 'anonymous'
+      // crossOrigin removed for same-origin assets to avoid CORS/tainting issues
       video.style.display = 'none'
 
       const texture = ctx.createTexture()
@@ -549,7 +549,7 @@ export default function Page() {
 
       const loadFrame = (i: number) => {
         const img = new Image()
-        img.crossOrigin = 'anonymous'
+        // crossOrigin removed for same-origin assets to avoid CORS/tainting issues
         img.src = `${scene.frameDir}/f_${String(i).padStart(3, '0')}.webp?r=13`
         img.onload = () => {
           loadedCount++
