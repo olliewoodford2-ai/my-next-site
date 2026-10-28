@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Pear — Visual portfolio exploring classical form, organic texture, and chromatic transition through fabric, fruit, and cobalt">
+    <title>Pear — Portfolio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="scroll-container" id="scrollContainer">
+        <!-- Scene 1: Classical Figure (0.0–2.5s) -->
+        <section class="scene scene-1" data-scene="1" data-start="0" data-end="13">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_002_t1.0s.png" alt="Classical figure emerging from shadow" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 2: Cream Fabric (2.5–4.0s) -->
+        <section class="scene scene-2" data-scene="2" data-start="13" data-end="21">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_006_t3.0s.png" alt="Flowing cream fabric folds" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 3: Red & Cream Fabric (4.0–5.5s) -->
+        <section class="scene scene-3" data-scene="3" data-start="21" data-end="29">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_009_t4.5s.png" alt="Red and cream fabric intertwining" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 4: Orchard & Pear Branches (5.5–7.5s) -->
+        <section class="scene scene-4" data-scene="4" data-start="29" data-end="39">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_012_t6.0s.png" alt="Pear branches with fruit in orchard light" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 5: Hands & Fruit Closeup (7.5–9.0s) -->
+        <section class="scene scene-5" data-scene="5" data-start="39" data-end="47">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_015_t7.5s.png" alt="Hands cradling ripe pear fruit" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 6: Blue Fabric Entry (9.0–11.0s) -->
+        <section class="scene scene-6" data-scene="6" data-start="47" data-end="58">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_018_t9.0s.png" alt="Cobalt blue fabric bleeding into warm tones" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 7: Portrait in Fabric (11.0–12.0s) -->
+        <section class="scene scene-7" data-scene="7" data-start="58" data-end="63">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_022_t11.0s.png" alt="Renaissance portrait draped in blue fabric" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 8: Orchard Return (12.0–14.0s) -->
+        <section class="scene scene-8" data-scene="8" data-start="63" data-end="74">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_025_t12.5s.png" alt="Orchard foliage with dappled light" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 9: Final Blue Shift (14.0–15.5s) -->
+        <section class="scene scene-9" data-scene="9" data-start="74" data-end="82">
+            <div class="scene-media">
+                <img src="/assets/pear-reference/frame_029_t14.5s.png" alt="Cobalt blue fabric settling into solid field" class="scene-image" loading="lazy">
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+
+        <!-- Scene 10: Cobalt Hold with Typography (15.5–19.0s) -->
+        <section class="scene scene-10 finale" data-scene="10" data-start="82" data-end="100">
+            <div class="scene-media finale-bg">
+                <div class="cobalt-field"></div>
+            </div>
+            <div class="finale-content">
+                <div class="finale-mark" aria-hidden="true">
+                    <svg viewBox="0 0 120 120" class="pear-mark" width="120" height="120">
+                        <path d="M60 100 C40 100 25 85 25 65 C25 40 45 25 60 25 C75 25 95 40 95 65 C95 85 80 100 60 100 Z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+                        <path d="M60 25 C55 15 50 12 60 8 C70 12 65 15 60 25" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                        <path d="M60 25 C58 18 62 18 60 25" fill="currentColor"/>
+                    </svg>
+                </div>
+                <h1 class="finale-title">Pear</h1>
+                <p class="finale-tagline">Not an agency on the clock.<br>A partner in the upside.</p>
+                <div class="finale-divider" aria-hidden="true"></div>
+                <p class="finale-legal">PEAR AS · ORG NR 919 062 517 · OSLO</p>
+                <a href="mailto:info@pear.no" class="finale-contact">info@pear.no</a>
+            </div>
+            <div class="scene-overlay"></div>
+        </section>
+    </div>
+
+    <!-- Progress indicator -->
+    <div class="progress-bar" id="progressBar" aria-hidden="true">
+        <div class="progress-fill" id="progressFill"></div>
+    </div>
+
+    <!-- Chapter navigation (sticky, appears after first section) -->
+    <nav class="chapter-nav" id="chapterNav" aria-label="Chapter navigation" hidden>
+        <ul class="chapter-list">
+            <li><a href="#" data-target="1" class="chapter-link">Ch. 1 The Figure</a></li>
+            <li><a href="#" data-target="2" class="chapter-link">Ch. 2 The Fabric</a></li>
+            <li><a href="#" data-target="4" class="chapter-link">Ch. 3 The Orchard</a></li>
+            <li><a href="#" data-target="6" class="chapter-link">Ch. 4 The Blue</a></li>
+            <li><a href="#" data-target="10" class="chapter-link">Ch. 5 The Mark</a></li>
+        </ul>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>
