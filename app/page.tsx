@@ -393,9 +393,6 @@ const QUAD_POSITIONS = new Float32Array([
    1,  1, 1, 0,
 ])
 
-// Programs ref - defined at module level so render functions can access it
-const programsRef = { current: new Map<string, WebGLProgram>() }
-
 export default function Page() {
   const [scrollProgress, setScrollProgress] = useState(0)
   const [currentScene, setCurrentScene] = useState<SceneId>('classical')
@@ -703,7 +700,7 @@ export default function Page() {
     let frameCount = 0
     const animate = () => {
       frameCount++
-      render(gl, canvas.clientWidth, canvas.clientHeight, scrollProgress, currentScene, frameCount, assets)
+      render(gl, canvas.clientWidth, canvas.clientHeight, scrollProgress, currentScene, frameCount, assets, programsRef.current)
       rafRef.current = requestAnimationFrame(animate)
     }
 
@@ -848,7 +845,8 @@ function render(
   progress: number,
   scene: SceneId,
   frame: number,
-  assets: Map<SceneId, SceneAsset>
+  assets: Map<SceneId, SceneAsset>,
+  programs: Map<string, WebGLProgram>
 ) {
   const sceneProgress = getSceneProgressStatic(progress, scene)
   const asset = assets.get(scene)
@@ -858,9 +856,9 @@ function render(
   ctx.clear(ctx.COLOR_BUFFER_BIT)
 
   if (asset && 'textures' in asset && asset.ready && asset.textures.length > 0) {
-    drawFrameSequence(ctx, asset, w, h, sceneProgress, sceneDef, frame)
+    drawFrameSequence(ctx, asset, w, h, sceneProgress, sceneDef, frame, programs)
   } else if (asset && 'texture' in asset && asset.ready && asset.texture && asset.video && asset.video.readyState >= 2) {
-    drawVideoFrame(ctx, asset, w, h, sceneProgress, sceneDef, frame)
+    drawVideoFrame(ctx, asset, w, h, sceneProgress, sceneDef, frame, programs)
   } else {
     drawProceduralFallback(ctx, w, h, sceneProgress, sceneDef, frame * 0.016)
   }
@@ -880,7 +878,8 @@ function drawFrameSequence(
   h: number,
   sceneProgress: number,
   sceneDef: typeof SCENES[0],
-  frame: number
+  frame: number,
+  programs: Map<string, WebGLProgram>
 ) {
   if (asset.textures.length === 0) return
 
@@ -892,7 +891,7 @@ function drawFrameSequence(
   const lowerTex = asset.textures[lowerIdx]
   const upperTex = asset.textures[upperIdx]
 
-  const prog = programsRef.current.get(sceneDef.transition) || programsRef.current.get('none')!
+  const prog = programs.get(sceneDef.transition) || programs.get('none')!
   ctx.useProgram(prog)
 
   ctx.uniform1f(ctx.getUniformLocation(prog, 'u_progress'), sceneProgress)
@@ -929,7 +928,8 @@ function drawVideoFrame(
   h: number,
   sceneProgress: number,
   sceneDef: typeof SCENES[0],
-  frame: number
+  frame: number,
+  programs: Map<string, WebGLProgram>
 ) {
   if (!asset.texture || !asset.video) return
 
@@ -943,7 +943,7 @@ function drawVideoFrame(
   ctx.bindTexture(ctx.TEXTURE_2D, asset.texture)
   ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, asset.video)
 
-  const prog = programsRef.current.get(sceneDef.transition) || programsRef.current.get('none')!
+  const prog = programs.get(sceneDef.transition) || programs.get('none')!
   ctx.useProgram(prog)
 
   ctx.uniform1f(ctx.getUniformLocation(prog, 'u_progress'), sceneProgress)
