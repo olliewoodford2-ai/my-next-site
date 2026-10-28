@@ -19,31 +19,21 @@ interface SceneDef {
   start: number
   end: number
   label: string
-  // Video settings (for scenes using video)
   videoSrc: string | null
   videoTimeStart: number
   videoTimeEnd: number
-  // Frame sequence settings (for scenes using image sequences)
   frameDir: string | null
   frameCount: number
-  frameStart: number // 1-indexed frame number to start
-  frameEnd: number   // 1-indexed frame number to end
+  frameStart: number
+  frameEnd: number
   useFrames: boolean
+  transition: 'breathe' | 'slice' | 'halftone' | 'displace' | 'static' | 'ring' | 'none'
+  text: {
+    headline: string
+    subtext: string
+  }
 }
 
-// Scene definitions based on the reference video (19s total) and recovered original assets
-// Frame sequences recovered from pear.no live site via scraper:
-// - flysky: 121 frames (cream fabric, Scene 2)
-// - trans: 121 frames (red/cream fabric transition, Scene 3)
-// - tree: 121 frames (orchard, Scene 4)
-// - plan: 121 frames (orchard return/planning, Scenes 6 & 8)
-// - coda: 89 frames (final blue shift, Scene 9)
-// - model/renaissance/1440: 362 frames (high-res portrait, Scenes 1 & 7)
-// Videos verified via perceptual hash:
-// - colossus.mp4: classical figure (Scene 1)
-// - reveal.mp4: orchard/hands (Scenes 4-5)
-// - signal.mp4: cobalt hold + typography (Scene 10)
-// - footer-loop.mp4: final blue shift (Scene 9)
 const SCENES: readonly SceneDef[] = [
   {
     id: 'classical',
@@ -57,7 +47,12 @@ const SCENES: readonly SceneDef[] = [
     frameCount: 362,
     frameStart: 1,
     frameEnd: 362,
-    useFrames: true, // Use high-res renaissance frames with video fallback
+    useFrames: true,
+    transition: 'breathe',
+    text: {
+      headline: 'not an agency on the clock,<br />a partner in the upside',
+      subtext: 'Pear makes you appear',
+    },
   },
   {
     id: 'cream-fabric',
@@ -72,6 +67,11 @@ const SCENES: readonly SceneDef[] = [
     frameStart: 1,
     frameEnd: 121,
     useFrames: true,
+    transition: 'slice',
+    text: {
+      headline: 'Data-driven SEO<br />that compounds',
+      subtext: 'Traffic that outruns competitors',
+    },
   },
   {
     id: 'red-cream-fabric',
@@ -86,6 +86,11 @@ const SCENES: readonly SceneDef[] = [
     frameStart: 1,
     frameEnd: 121,
     useFrames: true,
+    transition: 'halftone',
+    text: {
+      headline: 'Tailored software<br />for revenue growth',
+      subtext: 'Built for your upside',
+    },
   },
   {
     id: 'orchard',
@@ -99,7 +104,12 @@ const SCENES: readonly SceneDef[] = [
     frameCount: 121,
     frameStart: 1,
     frameEnd: 121,
-    useFrames: true, // Use tree frames as primary, video as fallback
+    useFrames: true,
+    transition: 'displace',
+    text: {
+      headline: 'Revenue-share partnerships<br />aligned with outcomes',
+      subtext: 'We win when you win',
+    },
   },
   {
     id: 'hands-fruit',
@@ -113,7 +123,12 @@ const SCENES: readonly SceneDef[] = [
     frameCount: 0,
     frameStart: 0,
     frameEnd: 0,
-    useFrames: false, // Video only for hands/fruit
+    useFrames: false,
+    transition: 'none',
+    text: {
+      headline: 'Hands-on execution<br />not handoffs',
+      subtext: 'Your team, extended',
+    },
   },
   {
     id: 'blue-fabric',
@@ -128,6 +143,11 @@ const SCENES: readonly SceneDef[] = [
     frameStart: 1,
     frameEnd: 121,
     useFrames: true,
+    transition: 'static',
+    text: {
+      headline: 'Strategy that adapts<br />in real time',
+      subtext: 'No static decks, live systems',
+    },
   },
   {
     id: 'portrait-fabric',
@@ -141,7 +161,12 @@ const SCENES: readonly SceneDef[] = [
     frameCount: 362,
     frameStart: 1,
     frameEnd: 362,
-    useFrames: true, // High-res portrait frames with video
+    useFrames: true,
+    transition: 'ring',
+    text: {
+      headline: 'Brand authority<br />engineered at scale',
+      subtext: 'Appear where decisions happen',
+    },
   },
   {
     id: 'orchard-return',
@@ -156,6 +181,11 @@ const SCENES: readonly SceneDef[] = [
     frameStart: 1,
     frameEnd: 121,
     useFrames: true,
+    transition: 'slice',
+    text: {
+      headline: 'Sustainable growth<br />not rented traffic',
+      subtext: 'Compound your presence',
+    },
   },
   {
     id: 'final-blue',
@@ -169,7 +199,12 @@ const SCENES: readonly SceneDef[] = [
     frameCount: 89,
     frameStart: 1,
     frameEnd: 89,
-    useFrames: true, // Coda frames with footer-loop video
+    useFrames: true,
+    transition: 'halftone',
+    text: {
+      headline: 'The long game<br />played to win',
+      subtext: 'Pear makes you appear',
+    },
   },
   {
     id: 'cobalt-hold',
@@ -183,17 +218,152 @@ const SCENES: readonly SceneDef[] = [
     frameCount: 0,
     frameStart: 0,
     frameEnd: 0,
-    useFrames: false, // Video + HTML typography overlay
+    useFrames: false,
+    transition: 'none',
+    text: {
+      headline: 'not an agency on the clock,<br />a partner in the upside',
+      subtext: 'Pear makes you appear',
+    },
   },
 ] as const
 
 const STAGE_HEIGHT = 5350
 
-interface VideoAsset {
-  video: HTMLVideoElement
-  ready: boolean
-  duration: number
-  currentTime: number
+const VERTEX_SHADER = `
+  attribute vec2 a_position;
+  attribute vec2 a_texCoord;
+  varying vec2 v_texCoord;
+  void main() {
+    v_texCoord = a_texCoord;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+  }
+`
+
+const FRAGMENT_SHADER_BASE = `
+  precision highp float;
+  varying vec2 v_texCoord;
+  uniform sampler2D u_texture;
+  uniform float u_progress;
+  uniform vec2 u_resolution;
+  uniform float u_time;
+`
+
+// Cross-fade fragment shader - has u_texture1 and u_blend
+const FRAGMENT_SHADER_CROSSFADE = `
+  precision highp float;
+  varying vec2 v_texCoord;
+  uniform sampler2D u_texture;
+  uniform sampler2D u_texture1;
+  uniform float u_blend;
+  uniform float u_progress;
+  uniform vec2 u_resolution;
+  uniform float u_time;
+`
+
+const TRANSITION_SHADERS = {
+  breathe: FRAGMENT_SHADER_BASE + `
+    void main() {
+      vec4 color = texture2D(u_texture, v_texCoord);
+      float breathe = sin(u_time * 0.5) * 0.02 + 1.0;
+      vec2 center = vec2(0.5, 0.5);
+      vec2 uv = (v_texCoord - center) * breathe + center;
+      vec4 breathed = texture2D(u_texture, uv);
+      gl_FragColor = mix(color, breathed, u_progress * 0.3);
+    }
+  `,
+  slice: FRAGMENT_SHADER_CROSSFADE + `
+    uniform float u_sliceCount;
+    void main() {
+      vec4 color = texture2D(u_texture, v_texCoord);
+      float sliceHeight = 1.0 / u_sliceCount;
+      float sliceIndex = floor(v_texCoord.y / sliceHeight);
+      float offset = sin(u_time + sliceIndex * 0.5) * 0.01 * u_progress;
+      vec2 uv = vec2(v_texCoord.x + offset, v_texCoord.y);
+      vec4 sliced = texture2D(u_texture, uv);
+      vec4 mixed = mix(color, sliced, u_progress);
+      if (u_blend > 0.0) {
+        vec4 upper = texture2D(u_texture1, v_texCoord);
+        gl_FragColor = mix(mixed, upper, u_blend);
+      } else {
+        gl_FragColor = mixed;
+      }
+    }
+  `,
+  halftone: FRAGMENT_SHADER_CROSSFADE + `
+    void main() {
+      vec4 color = texture2D(u_texture, v_texCoord);
+      vec2 uv = v_texCoord * u_resolution * 0.01;
+      float dotSize = 4.0 + sin(u_time * 0.3) * 2.0;
+      float pattern = sin(uv.x * dotSize) * sin(uv.y * dotSize);
+      float halftone = step(0.0, pattern) * (0.1 * u_progress);
+      vec3 result = color.rgb + vec3(halftone);
+      vec4 mixed = vec4(result, color.a);
+      if (u_blend > 0.0) {
+        vec4 upper = texture2D(u_texture1, v_texCoord);
+        gl_FragColor = mix(mixed, upper, u_blend);
+      } else {
+        gl_FragColor = mixed;
+      }
+    }
+  `,
+  displace: FRAGMENT_SHADER_CROSSFADE + `
+    uniform sampler2D u_displaceMap;
+    void main() {
+      vec4 color = texture2D(u_texture, v_texCoord);
+      vec4 displace = texture2D(u_displaceMap, v_texCoord);
+      vec2 offset = (displace.rg - 0.5) * 0.05 * u_progress;
+      vec4 displaced = texture2D(u_texture, v_texCoord + offset);
+      vec4 mixed = mix(color, displaced, u_progress);
+      if (u_blend > 0.0) {
+        vec4 upper = texture2D(u_texture1, v_texCoord);
+        gl_FragColor = mix(mixed, upper, u_blend);
+      } else {
+        gl_FragColor = mixed;
+      }
+    }
+  `,
+  static: FRAGMENT_SHADER_CROSSFADE + `
+    void main() {
+      vec4 color = texture2D(u_texture, v_texCoord);
+      float noise = fract(sin(dot(v_texCoord * 100.0 + u_time * 10.0, vec2(12.9898, 78.233))) * 43758.5453);
+      float staticAmt = noise * 0.1 * u_progress;
+      vec4 mixed = vec4(color.rgb + vec3(staticAmt), color.a);
+      if (u_blend > 0.0) {
+        vec4 upper = texture2D(u_texture1, v_texCoord);
+        gl_FragColor = mix(mixed, upper, u_blend);
+      } else {
+        gl_FragColor = mixed;
+      }
+    }
+  `,
+  ring: FRAGMENT_SHADER_CROSSFADE + `
+    void main() {
+      vec4 color = texture2D(u_texture, v_texCoord);
+      vec2 center = vec2(0.5, 0.5);
+      float dist = distance(v_texCoord, center);
+      float ring = sin(dist * 50.0 - u_time * 3.0) * 0.02 * u_progress;
+      vec2 uv = v_texCoord + normalize(v_texCoord - center) * ring;
+      vec4 ringed = texture2D(u_texture, uv);
+      vec4 mixed = mix(color, ringed, u_progress);
+      if (u_blend > 0.0) {
+        vec4 upper = texture2D(u_texture1, v_texCoord);
+        gl_FragColor = mix(mixed, upper, u_blend);
+      } else {
+        gl_FragColor = mixed;
+      }
+    }
+  `,
+  none: FRAGMENT_SHADER_CROSSFADE + `
+    void main() {
+      vec4 color = texture2D(u_texture, v_texCoord);
+      if (u_blend > 0.0) {
+        vec4 upper = texture2D(u_texture1, v_texCoord);
+        gl_FragColor = mix(color, upper, u_blend);
+      } else {
+        gl_FragColor = color;
+      }
+    }
+  `,
 }
 
 interface FrameAsset {
@@ -203,9 +373,28 @@ interface FrameAsset {
   frameDir: string
   frameStart: number
   frameEnd: number
+  textures: WebGLTexture[]
 }
 
-type SceneAsset = VideoAsset | FrameAsset | null
+interface VideoAsset {
+  video: HTMLVideoElement
+  ready: boolean
+  duration: number
+  currentTime: number
+  texture: WebGLTexture | null
+}
+
+type SceneAsset = FrameAsset | VideoAsset | null
+
+const QUAD_POSITIONS = new Float32Array([
+  -1, -1, 0, 1,
+   1, -1, 1, 1,
+  -1,  1, 0, 0,
+   1,  1, 1, 0,
+])
+
+// Programs ref - defined at module level so render functions can access it
+const programsRef = { current: new Map<string, WebGLProgram>() }
 
 export default function Page() {
   const [scrollProgress, setScrollProgress] = useState(0)
@@ -213,15 +402,17 @@ export default function Page() {
   const [isReducedMotion, setIsReducedMotion] = useState(false)
   const [assets, setAssets] = useState<Map<SceneId, SceneAsset>>(new Map())
   const [assetsReady, setAssetsReady] = useState(false)
+  const [gl, setGl] = useState<WebGLRenderingContext | null>(null)
 
   const stageRef = useRef<HTMLDivElement>(null)
   const pinRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rafRef = useRef<number>()
-  const frameRef = useRef(0)
   const lastScrollProgressRef = useRef(0)
+  const programsRef = useRef<Map<string, WebGLProgram>>(new Map())
+  const frameTexturesRef = useRef<Map<string, WebGLTexture>>(new Map())
+  const videoTexturesRef = useRef<Map<string, WebGLTexture>>(new Map())
 
-  // Preload all assets (videos and frames)
   useEffect(() => {
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)')
     setIsReducedMotion(mql.matches)
@@ -231,120 +422,231 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    const loadVideoAsset = (scene: typeof SCENES[0]): Promise<VideoAsset> => {
-      return new Promise((resolve) => {
-        if (!scene.videoSrc) {
-          resolve({ video: null as any, ready: false, duration: 0, currentTime: 0 })
-          return
-        }
-        const video = document.createElement('video')
-        video.src = scene.videoSrc
-        video.muted = true
-        video.playsInline = true
-        video.preload = 'auto'
-        video.crossOrigin = 'anonymous'
-        video.style.display = 'none'
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('webgl', {
+      alpha: true,
+      antialias: true,
+      preserveDrawingBuffer: false,
+      powerPreference: 'high-performance',
+    })
+    if (!ctx) return
+    setGl(ctx)
 
-        video.addEventListener('canplay', () => {
-          video.currentTime = scene.videoTimeStart || 0
-          resolve({
-            video,
-            ready: true,
-            duration: video.duration || (scene.videoTimeEnd - scene.videoTimeStart),
-            currentTime: scene.videoTimeStart || 0
-          })
-        }, { once: true })
+    const createProgram = (fragSource: string) => {
+      const vert = ctx.createShader(ctx.VERTEX_SHADER)!
+      ctx.shaderSource(vert, VERTEX_SHADER)
+      ctx.compileShader(vert)
+      const frag = ctx.createShader(ctx.FRAGMENT_SHADER)!
+      ctx.shaderSource(frag, fragSource)
+      ctx.compileShader(frag)
+      const prog = ctx.createProgram()!
+      ctx.attachShader(prog, vert)
+      ctx.attachShader(prog, frag)
+      ctx.linkProgram(prog)
+      return prog
+    }
 
-        video.addEventListener('error', () => {
-          console.warn(`Failed to load video: ${scene.videoSrc}`)
-          resolve({ video: null as any, ready: false, duration: 0, currentTime: 0 })
-        }, { once: true })
+    const progs = new Map<string, WebGLProgram>()
+    Object.entries(TRANSITION_SHADERS).forEach(([name, src]) => {
+      progs.set(name, createProgram(src))
+    })
+    programsRef.current = progs
+    setGl(ctx) // trigger re-render with programs ready
 
-        const timeout = setTimeout(() => {
-          if (video.readyState >= 2) {
-            video.currentTime = scene.videoTimeStart || 0
-            resolve({
-              video,
-              ready: true,
-              duration: video.duration || (scene.videoTimeEnd - scene.videoTimeStart),
-              currentTime: scene.videoTimeStart || 0
-            })
+    const buffer = ctx.createBuffer()
+    ctx.bindBuffer(ctx.ARRAY_BUFFER, buffer)
+    ctx.bufferData(ctx.ARRAY_BUFFER, QUAD_POSITIONS, ctx.STATIC_DRAW)
+
+    const posLoc = (prog: WebGLProgram) => ctx.getAttribLocation(prog, 'a_position')
+    const texLoc = (prog: WebGLProgram) => ctx.getAttribLocation(prog, 'a_texCoord')
+
+    const setupAttributes = (prog: WebGLProgram) => {
+      ctx.bindBuffer(ctx.ARRAY_BUFFER, buffer)
+      ctx.enableVertexAttribArray(posLoc(prog))
+      ctx.vertexAttribPointer(posLoc(prog), 2, ctx.FLOAT, false, 16, 0)
+      ctx.enableVertexAttribArray(texLoc(prog))
+      ctx.vertexAttribPointer(texLoc(prog), 2, ctx.FLOAT, false, 16, 8)
+    }
+
+    Object.values(progs).forEach(setupAttributes)
+
+    return () => {
+      progs.forEach(p => ctx.deleteProgram(p))
+      ctx.deleteBuffer(buffer)
+    }
+  }, [])
+
+  const loadVideoAsset = useCallback((scene: typeof SCENES[0], ctx: WebGLRenderingContext): Promise<VideoAsset> => {
+    return new Promise((resolve) => {
+      if (!scene.videoSrc) {
+        resolve({ video: null as any, ready: false, duration: 0, currentTime: 0, texture: null })
+        return
+      }
+      const video = document.createElement('video')
+      video.src = scene.videoSrc
+      video.muted = true
+      video.playsInline = true
+      video.preload = 'auto'
+      video.crossOrigin = 'anonymous'
+      video.style.display = 'none'
+
+      const texture = ctx.createTexture()
+      ctx.bindTexture(ctx.TEXTURE_2D, texture)
+      ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE)
+      ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE)
+      ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR)
+      ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR)
+
+      video.addEventListener('canplay', () => {
+        video.currentTime = scene.videoTimeStart || 0
+        // Play the video so it continues to update frames
+        video.play().catch(() => {
+          // Autoplay might be blocked, but seeking will still work
+        })
+        ctx.bindTexture(ctx.TEXTURE_2D, texture)
+        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, video)
+        resolve({
+          video,
+          ready: true,
+          duration: video.duration || (scene.videoTimeEnd - scene.videoTimeStart),
+          currentTime: scene.videoTimeStart || 0,
+          texture,
+        })
+      }, { once: true })
+
+      video.addEventListener('error', () => {
+        console.warn(`Failed to load video: ${scene.videoSrc}`)
+        resolve({ video: null as any, ready: false, duration: 0, currentTime: 0, texture: null })
+      }, { once: true })
+
+      document.body.appendChild(video)
+      video.load()
+    })
+  }, [])
+
+  const loadFrameAsset = useCallback((scene: typeof SCENES[0], ctx: WebGLRenderingContext): Promise<FrameAsset> => {
+    return new Promise((resolve) => {
+      if (!scene.useFrames || !scene.frameDir) {
+        resolve({ images: [], ready: false, loadedCount: 0, frameDir: '', frameStart: 0, frameEnd: 0, textures: [] })
+        return
+      }
+      const images: HTMLImageElement[] = []
+      const textureArray: WebGLTexture[] = []
+      let loadedCount = 0
+      const totalFrames = scene.frameEnd - scene.frameStart + 1
+
+      const createTexture = (img: HTMLImageElement) => {
+        const tex = ctx.createTexture()
+        ctx.bindTexture(ctx.TEXTURE_2D, tex)
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE)
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE)
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR)
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR)
+        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, img)
+        return tex
+      }
+
+      const loadFrame = (i: number) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.src = `${scene.frameDir}/f_${String(i).padStart(3, '0')}.webp?r=13`
+        img.onload = () => {
+          loadedCount++
+          images[i - scene.frameStart] = img
+          textureArray[i - scene.frameStart] = createTexture(img)
+          if (loadedCount === totalFrames) {
+            resolve({ images, ready: true, loadedCount, frameDir: scene.frameDir!, frameStart: scene.frameStart, frameEnd: scene.frameEnd, textures: textureArray })
           } else {
-            console.warn(`Video load timeout: ${scene.videoSrc}`)
-            resolve({ video: null as any, ready: false, duration: 0, currentTime: 0 })
-          }
-        }, 10000)
-
-        video.addEventListener('canplay', () => clearTimeout(timeout), { once: true })
-
-        document.body.appendChild(video)
-        video.load()
-      })
-    }
-
-    const loadFrameAsset = (scene: typeof SCENES[0]): Promise<FrameAsset> => {
-      return new Promise((resolve) => {
-        if (!scene.useFrames || !scene.frameDir) {
-          resolve({ images: [], ready: false, loadedCount: 0, frameDir: '', frameStart: 0, frameEnd: 0 })
-          return
-        }
-        const images: HTMLImageElement[] = []
-        let loadedCount = 0
-        const totalFrames = scene.frameEnd - scene.frameStart + 1
-
-        for (let i = scene.frameStart; i <= scene.frameEnd; i++) {
-          const img = new Image()
-          img.crossOrigin = 'anonymous'
-          // WebP frames: f_001.webp, f_002.webp, etc.
-          img.src = `${scene.frameDir}/f_${String(i).padStart(3, '0')}.webp?r=13`
-
-          img.onload = () => {
-            loadedCount++
-            images[i - scene.frameStart] = img
-            if (loadedCount === totalFrames) {
-              resolve({ images, ready: true, loadedCount, frameDir: scene.frameDir!, frameStart: scene.frameStart, frameEnd: scene.frameEnd })
+            // Continue loading next frames progressively (load 2 at a time)
+            const nextIdx = scene.frameStart + loadedCount
+            if (nextIdx <= scene.frameEnd) {
+              loadFrame(nextIdx)
             }
-          }
-          img.onerror = () => {
-            loadedCount++
-            console.warn(`Failed to load frame: ${img.src}`)
-            if (loadedCount === totalFrames) {
-              resolve({ images, ready: loadedCount > 0, loadedCount, frameDir: scene.frameDir!, frameStart: scene.frameStart, frameEnd: scene.frameEnd })
+            const nextIdx2 = scene.frameStart + loadedCount + 1
+            if (nextIdx2 <= scene.frameEnd) {
+              loadFrame(nextIdx2)
             }
           }
         }
-      })
-    }
+        img.onerror = () => {
+          loadedCount++
+          console.warn(`Failed to load frame: ${img.src}`)
+          if (loadedCount === totalFrames) {
+            resolve({ images, ready: loadedCount > 0, loadedCount, frameDir: scene.frameDir!, frameStart: scene.frameStart, frameEnd: scene.frameEnd, textures: textureArray })
+          } else {
+            // Continue loading on error too
+            const nextIdx = scene.frameStart + loadedCount
+            if (nextIdx <= scene.frameEnd) {
+              loadFrame(nextIdx)
+            }
+            const nextIdx2 = scene.frameStart + loadedCount + 1
+            if (nextIdx2 <= scene.frameEnd) {
+              loadFrame(nextIdx2)
+            }
+          }
+        }
+      }
+
+      // Load first 3 frames immediately for quick initial render
+      loadFrame(scene.frameStart)
+      if (scene.frameStart + 1 <= scene.frameEnd) loadFrame(scene.frameStart + 1)
+      if (scene.frameStart + 2 <= scene.frameEnd) loadFrame(scene.frameStart + 2)
+    })
+  }, [])
+
+  useEffect(() => {
+    const ctx = gl
+    if (!ctx) return
+
+    let cancelled = false
 
     const loadAllAssets = async () => {
       const assetMap = new Map<SceneId, SceneAsset>()
       for (const scene of SCENES) {
+        if (cancelled) return
         if (scene.videoSrc && scene.useFrames) {
-          // Load both video and frames for scenes that have both
           const [videoAsset, frameAsset] = await Promise.all([
-            loadVideoAsset(scene),
-            loadFrameAsset(scene)
+            loadVideoAsset(scene, ctx),
+            loadFrameAsset(scene, ctx),
           ])
-          // Prefer frames for rendering, video as fallback
-          assetMap.set(scene.id, frameAsset)
+          if (!cancelled) assetMap.set(scene.id, frameAsset)
         } else if (scene.videoSrc) {
-          const asset = await loadVideoAsset(scene)
-          assetMap.set(scene.id, asset)
+          const asset = await loadVideoAsset(scene, ctx)
+          if (!cancelled) assetMap.set(scene.id, asset)
         } else if (scene.useFrames) {
-          const asset = await loadFrameAsset(scene)
-          assetMap.set(scene.id, asset)
+          const asset = await loadFrameAsset(scene, ctx)
+          if (!cancelled) assetMap.set(scene.id, asset)
         } else {
           assetMap.set(scene.id, null)
         }
       }
-      setAssets(assetMap)
-      setAssetsReady(true)
+      if (!cancelled) {
+        setAssets(assetMap)
+        setAssetsReady(true)
+      }
     }
 
     loadAllAssets()
-  }, [])
 
-  // Scroll handling
+    return () => {
+      cancelled = true
+      // Clean up assets on unmount
+      assets.forEach(asset => {
+        if (asset && 'textures' in asset && asset.textures) {
+          asset.textures.forEach(tex => ctx.deleteTexture(tex))
+        } else if (asset && 'texture' in asset && asset.texture) {
+          ctx.deleteTexture(asset.texture)
+          if (asset.video) {
+            asset.video.pause()
+            asset.video.src = ''
+            asset.video.remove()
+          }
+        }
+      })
+    }
+  }, [gl, loadVideoAsset, loadFrameAsset, assets])
+
   useEffect(() => {
     const stage = stageRef.current
     const pin = pinRef.current
@@ -385,56 +687,23 @@ export default function Page() {
     }
   }, [])
 
-  // Update video current times based on scroll
-  const updateVideoTimes = useCallback((progress: number, sceneId: SceneId) => {
-    setAssets(prev => {
-      const next = new Map(prev)
-      SCENES.forEach(s => {
-        const asset = next.get(s.id)
-        if (!asset || !('video' in asset) || !asset.video) return
-
-        const sceneProgress = getSceneProgress(progress, s.id)
-        const targetTime = s.videoTimeStart + (s.videoTimeEnd - s.videoTimeStart) * sceneProgress
-
-        if (s.id === sceneId) {
-          if (Math.abs(asset.video.currentTime - targetTime) > 0.1) {
-            asset.video.currentTime = targetTime
-          }
-          asset.currentTime = asset.video.currentTime
-        } else {
-          if (asset.video.currentTime !== s.videoTimeStart) {
-            asset.video.currentTime = s.videoTimeStart
-          }
-          asset.currentTime = s.videoTimeStart
-        }
-      })
-      return next
-    })
-  }, [])
-
   useEffect(() => {
-    if (!assetsReady) return
-    updateVideoTimes(scrollProgress, currentScene)
-  }, [scrollProgress, currentScene, assetsReady, updateVideoTimes])
+    if (!gl || !assetsReady) return
 
-  // Canvas rendering
-  useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-
-    const ctx = canvas.getContext('2d', { alpha: true, desynchronized: true, willReadFrequently: false })
-    if (!ctx) return
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2)
       canvas.width = canvas.clientWidth * dpr
       canvas.height = canvas.clientHeight * dpr
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      gl.viewport(0, 0, canvas.width, canvas.height)
     }
 
+    let frameCount = 0
     const animate = () => {
-      frameRef.current++
-      render(ctx, canvas.clientWidth, canvas.clientHeight, scrollProgress, currentScene, frameRef.current, assets)
+      frameCount++
+      render(gl, canvas.clientWidth, canvas.clientHeight, scrollProgress, currentScene, frameCount, assets)
       rafRef.current = requestAnimationFrame(animate)
     }
 
@@ -446,7 +715,14 @@ export default function Page() {
       window.removeEventListener('resize', resize)
       cancelAnimationFrame(rafRef.current!)
     }
-  }, [scrollProgress, currentScene, assets, assetsReady])
+  }, [gl, scrollProgress, currentScene, assets, assetsReady])
+
+  const getSceneProgress = useCallback((globalProgress: number, scene: SceneId): number => {
+    const s = SCENES.find(s => s.id === scene)
+    if (!s) return 0
+    const range = s.end - s.start
+    return Math.max(0, Math.min(1, (globalProgress - s.start) / range))
+  }, [])
 
   return (
     <div className="relative">
@@ -477,49 +753,57 @@ export default function Page() {
             aria-label="Cinematic scroll experience"
           />
           <div className="scene-overlay" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-            {currentScene === 'cobalt-hold' && (
-              <div className="cobalt-typography" style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 'clamp(2rem, 8vw, 6rem)',
-                textAlign: 'center',
-                color: 'var(--paper)',
-              }}>
-                <svg
-                  className="pear-mark"
-                  viewBox="0 0 120 120"
-                  style={{ width: 'clamp(80px, 15vw, 140px)', height: 'auto', marginBottom: 'clamp(1.5rem, 4vw, 3rem)' }}
-                  aria-hidden="true"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M60 10c-22 0-38 15-38 35 0 12 8 22 20 28 12 6 24 18 24 36 0-18 12-30 24-36 12-6 20-16 20-28 0-20-16-35-38-35zm0 16c11 0 18 8 18 18 0 5-3 10-8 12-5 2-9 6-9 11 0 8 12 12 22 12 10 0 18-4 22-12 0-5-4-9-9-11-5-2-8-7-8-12 0-10 7-18 18-18z"
-                  />
-                </svg>
-                <h1 className="font-title-large tracking-press text-display leading-snug" style={{
-                  maxWidth: 'clamp(280px, 60vw, 600px)',
-                  lineHeight: 1.04,
-                  fontWeight: 300,
-                  letterSpacing: '-0.024em',
+            {(() => {
+              const sceneDef = SCENES.find(s => s.id === currentScene)
+              if (!sceneDef || !sceneDef.text) return null
+              const isCobalt = currentScene === 'cobalt-hold'
+              return (
+                <div className={isCobalt ? 'cobalt-typography' : 'scene-typography'} style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 'clamp(2rem, 8vw, 6rem)',
+                  textAlign: 'center',
+                  color: 'var(--paper)',
                 }}>
-                  not an agency on the clock,<br />a partner in the upside
-                </h1>
-                <p className="font-text tracking-wider" style={{
-                  marginTop: 'clamp(1.5rem, 3vw, 2.5rem)',
-                  fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.24em',
-                  opacity: 0.72,
-                  fontWeight: 400,
-                }}>
-                  Pear makes you appear
-                </p>
-              </div>
-            )}
+                  {isCobalt && (
+                    <svg
+                      className="pear-mark"
+                      viewBox="0 0 120 120"
+                      style={{ width: 'clamp(80px, 15vw, 140px)', height: 'auto', marginBottom: 'clamp(1.5rem, 4vw, 3rem)' }}
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M60 10c-22 0-38 15-38 35 0 12 8 22 20 28 12 6 24 18 24 36 0-18 12-30 24-36 12-6 20-16 20-28 0-20-16-35-38-35zm0 16c11 0 18 8 18 18 0 5-3 10-8 12-5 2-9 6-9 11 0 8 12 12 22 12 10 0 18-4 22-12 0-5-4-9-9-11 5-2-8-7-8-12 0-10 7-18 18-18z"
+                      />
+                    </svg>
+                  )}
+                  <h1 className="font-title-large tracking-press text-display leading-snug" style={{
+                    maxWidth: 'clamp(280px, 60vw, 600px)',
+                    lineHeight: 1.04,
+                    fontWeight: 300,
+                    letterSpacing: '-0.024em',
+                    opacity: sceneDef.useFrames ? 0.9 : 1,
+                  }}>
+                    {sceneDef.text.headline}
+                  </h1>
+                  <p className="font-text tracking-wider" style={{
+                    marginTop: 'clamp(1.5rem, 3vw, 2.5rem)',
+                    fontSize: 'clamp(0.75rem, 1.2vw, 1rem)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.24em',
+                    opacity: 0.72,
+                    fontWeight: 400,
+                  }}>
+                    {sceneDef.text.subtext}
+                  </p>
+                </div>
+              )
+            })()}
           </div>
         </div>
       </div>
@@ -559,15 +843,8 @@ export default function Page() {
   )
 }
 
-function getSceneProgress(globalProgress: number, scene: SceneId): number {
-  const s = SCENES.find(s => s.id === scene)
-  if (!s) return 0
-  const range = s.end - s.start
-  return Math.max(0, Math.min(1, (globalProgress - s.start) / range))
-}
-
 function render(
-  ctx: CanvasRenderingContext2D,
+  ctx: WebGLRenderingContext,
   w: number,
   h: number,
   progress: number,
@@ -575,385 +852,127 @@ function render(
   frame: number,
   assets: Map<SceneId, SceneAsset>
 ) {
-  ctx.clearRect(0, 0, w, h)
-
-  const sceneProgress = getSceneProgress(progress, scene)
+  const sceneProgress = getSceneProgressStatic(progress, scene)
   const asset = assets.get(scene)
   const sceneDef = SCENES.find(s => s.id === scene)!
 
-  // Render priority: frames first (original artwork), then video, then procedural fallback
-  if (asset && 'images' in asset && asset.ready && asset.images.length > 0) {
-    drawFrameSequence(ctx, asset.images, w, h, sceneProgress, sceneDef, asset)
-  } else if (asset && 'video' in asset && asset.ready && asset.video && asset.video.readyState >= 2) {
-    drawVideoFrame(ctx, asset.video, w, h, sceneProgress, sceneDef)
+  ctx.clearColor(0.043, 0.039, 0.035, 1.0)
+  ctx.clear(ctx.COLOR_BUFFER_BIT)
+
+  if (asset && 'textures' in asset && asset.ready && asset.textures.length > 0) {
+    drawFrameSequence(ctx, asset, w, h, sceneProgress, sceneDef, frame)
+  } else if (asset && 'texture' in asset && asset.ready && asset.texture && asset.video && asset.video.readyState >= 2) {
+    drawVideoFrame(ctx, asset, w, h, sceneProgress, sceneDef, frame)
   } else {
     drawProceduralFallback(ctx, w, h, sceneProgress, sceneDef, frame * 0.016)
   }
+}
 
-  // For cobalt-hold, also render the vignette on canvas (HTML overlay handles typography)
-  if (scene === 'cobalt-hold') {
-    const vignette = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.7)
-    vignette.addColorStop(0, 'rgba(12, 13, 25, 0)')
-    vignette.addColorStop(0.7, 'rgba(12, 13, 25, 0)')
-    vignette.addColorStop(1, 'rgba(8, 9, 16, 0.8)')
-    ctx.fillStyle = vignette
-    ctx.fillRect(0, 0, w, h)
-  }
+function getSceneProgressStatic(globalProgress: number, scene: SceneId): number {
+  const s = SCENES.find(s => s.id === scene)
+  if (!s) return 0
+  const range = s.end - s.start
+  return Math.max(0, Math.min(1, (globalProgress - s.start) / range))
 }
 
 function drawFrameSequence(
-  ctx: CanvasRenderingContext2D,
-  images: HTMLImageElement[],
+  ctx: WebGLRenderingContext,
+  asset: FrameAsset,
   w: number,
   h: number,
   sceneProgress: number,
   sceneDef: typeof SCENES[0],
-  asset: FrameAsset
+  frame: number
 ) {
-  if (images.length === 0) return
+  if (asset.textures.length === 0) return
 
-  // Map scene progress (0-1) to frame index
-  const frameIndex = sceneProgress * (images.length - 1)
+  const frameIndex = sceneProgress * (asset.textures.length - 1)
   const lowerIdx = Math.floor(frameIndex)
-  const upperIdx = Math.min(lowerIdx + 1, images.length - 1)
+  const upperIdx = Math.min(lowerIdx + 1, asset.textures.length - 1)
   const progressInSegment = frameIndex - lowerIdx
 
-  const lowerImg = images[Math.min(lowerIdx, images.length - 1)]
-  const upperImg = images[Math.min(upperIdx, images.length - 1)]
+  const lowerTex = asset.textures[lowerIdx]
+  const upperTex = asset.textures[upperIdx]
 
-  if (!lowerImg || !lowerImg.complete) return
+  const prog = programsRef.current.get(sceneDef.transition) || programsRef.current.get('none')!
+  ctx.useProgram(prog)
 
-  const iw = lowerImg.naturalWidth
-  const ih = lowerImg.naturalHeight
-  const scale = Math.max(w / iw, h / ih)
-  const dw = iw * scale
-  const dh = ih * scale
-  const dx = (w - dw) * 0.5
-  const dy = (h - dh) * 0.5
-
-  ctx.save()
-
-  // Cross-fade between frames for smooth animation
-  if (progressInSegment > 0.01 && progressInSegment < 0.99 && upperImg && upperImg.complete && upperImg !== lowerImg) {
-    ctx.globalAlpha = 1 - progressInSegment
-    ctx.drawImage(lowerImg, dx, dy, dw, dh)
-
-    ctx.globalAlpha = progressInSegment
-    ctx.drawImage(upperImg, dx, dy, dw, dh)
-    ctx.globalAlpha = 1
-  } else {
-    ctx.drawImage(lowerImg, dx, dy, dw, dh)
+  ctx.uniform1f(ctx.getUniformLocation(prog, 'u_progress'), sceneProgress)
+  ctx.uniform2f(ctx.getUniformLocation(prog, 'u_resolution'), w, h)
+  ctx.uniform1f(ctx.getUniformLocation(prog, 'u_time'), frame * 0.016)
+  if (sceneDef.transition === 'slice') {
+    ctx.uniform1f(ctx.getUniformLocation(prog, 'u_sliceCount'), 20)
   }
 
-  // Scene-specific color grading overlays matching original
-  applySceneOverlay(ctx, w, h, sceneProgress, sceneDef)
+  ctx.activeTexture(ctx.TEXTURE0)
+  ctx.bindTexture(ctx.TEXTURE_2D, lowerTex)
+  ctx.uniform1i(ctx.getUniformLocation(prog, 'u_texture'), 0)
 
-  ctx.restore()
-}
+  // Set u_texture1 and u_blend for cross-fade
+  const uTexture1Loc = ctx.getUniformLocation(prog, 'u_texture1')
+  const uBlendLoc = ctx.getUniformLocation(prog, 'u_blend')
 
-function applySceneOverlay(
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  sceneProgress: number,
-  sceneDef: typeof SCENES[0]
-) {
-  const p = sceneProgress
-
-  switch (sceneDef.id) {
-    case 'classical':
-    case 'portrait-fabric': {
-      // Subtle vignette for portrait scenes
-      const vignette = ctx.createRadialGradient(w * 0.5, h * 0.35, 0, w * 0.5, h * 0.35, Math.max(w, h) * 0.7)
-      vignette.addColorStop(0, 'rgba(11, 10, 9, 0)')
-      vignette.addColorStop(0.6, 'rgba(11, 10, 9, 0.3)')
-      vignette.addColorStop(1, 'rgba(11, 10, 9, 0.8)')
-      ctx.fillStyle = vignette
-      ctx.fillRect(0, 0, w, h)
-      break
-    }
-    case 'cream-fabric': {
-      // Warm cream tone enhancement
-      const overlay = ctx.createLinearGradient(0, 0, 0, h)
-      overlay.addColorStop(0, `rgba(245, 230, 211, ${0.15 * p})`)
-      overlay.addColorStop(1, `rgba(212, 196, 176, ${0.2 * p})`)
-      ctx.fillStyle = overlay
-      ctx.fillRect(0, 0, w, h)
-      break
-    }
-    case 'red-cream-fabric': {
-      // Red fabric color bleed
-      const overlay = ctx.createLinearGradient(0, 0, 0, h)
-      overlay.addColorStop(0, `rgba(245, 230, 211, ${0.1 * (1-p)})`)
-      overlay.addColorStop(0.5, `rgba(196, 116, 94, ${0.25 * p})`)
-      overlay.addColorStop(1, `rgba(160, 82, 61, ${0.3 * p})`)
-      ctx.fillStyle = overlay
-      ctx.fillRect(0, 0, w, h)
-      break
-    }
-    case 'orchard':
-    case 'orchard-return': {
-      // Dappled green light
-      const overlay = ctx.createRadialGradient(w * 0.5, h * 0.3, 0, w * 0.5, h * 0.3, Math.max(w, h) * 0.6)
-      overlay.addColorStop(0, 'rgba(127, 140, 120, 0)')
-      overlay.addColorStop(0.4, 'rgba(127, 140, 120, 0.1)')
-      overlay.addColorStop(1, 'rgba(90, 106, 85, 0.2)')
-      ctx.fillStyle = overlay
-      ctx.fillRect(0, 0, w, h)
-      break
-    }
-    case 'blue-fabric': {
-      // Blue fabric entry - warm to cobalt transition
-      const warmTop = h * (1 - p * 1.2)
-      const blendHeight = h * 0.3
-      const blendTop = Math.max(0, warmTop - blendHeight)
-
-      // Warm base
-      const warmGradient = ctx.createLinearGradient(0, 0, 0, h)
-      warmGradient.addColorStop(0, '#F5E6D3')
-      warmGradient.addColorStop(0.5, '#E8D5C4')
-      warmGradient.addColorStop(1, '#D4C4B0')
-      ctx.fillStyle = warmGradient
-      ctx.fillRect(0, 0, w, Math.max(0, warmTop))
-
-      // Blend zone
-      for (let y = blendTop; y < warmTop; y++) {
-        const localP = (y - blendTop) / blendHeight
-        const eased = 1 - Math.pow(1 - localP, 3)
-        const r = Math.round(245 * (1 - eased) + 12 * eased)
-        const g = Math.round(230 * (1 - eased) + 13 * eased)
-        const b = Math.round(211 * (1 - eased) + 25 * eased)
-        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`
-        ctx.fillRect(0, y, w, 1)
-      }
-
-      // Cobalt bottom
-      const blueGradient = ctx.createLinearGradient(0, 0, 0, h)
-      blueGradient.addColorStop(0, '#11121E')
-      blueGradient.addColorStop(0.5, '#0C0D19')
-      blueGradient.addColorStop(1, '#080910')
-      ctx.fillStyle = blueGradient
-      ctx.fillRect(0, warmTop, w, h - warmTop)
-      break
-    }
-    case 'final-blue': {
-      // Final blue shift to cobalt
-      const overlay = ctx.createLinearGradient(0, 0, 0, h)
-      overlay.addColorStop(0, `rgba(17, 18, 30, ${0.2 + p * 0.5})`)
-      overlay.addColorStop(0.5, `rgba(12, 13, 25, ${0.6 + p * 0.3})`)
-      overlay.addColorStop(1, `rgba(8, 9, 16, ${0.8 + p * 0.2})`)
-      ctx.fillStyle = overlay
-      ctx.fillRect(0, 0, w, h)
-      break
-    }
+  if (uTexture1Loc && uBlendLoc && progressInSegment > 0.01 && progressInSegment < 0.99 && upperTex !== lowerTex) {
+    ctx.activeTexture(ctx.TEXTURE1)
+    ctx.bindTexture(ctx.TEXTURE_2D, upperTex)
+    ctx.uniform1i(uTexture1Loc, 1)
+    ctx.uniform1f(uBlendLoc, progressInSegment)
+  } else if (uBlendLoc) {
+    ctx.uniform1f(uBlendLoc, 0.0)
   }
+
+  ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4)
 }
 
 function drawVideoFrame(
-  ctx: CanvasRenderingContext2D,
-  video: HTMLVideoElement,
+  ctx: WebGLRenderingContext,
+  asset: VideoAsset,
   w: number,
   h: number,
   sceneProgress: number,
-  sceneDef: typeof SCENES[0]
+  sceneDef: typeof SCENES[0],
+  frame: number
 ) {
-  const vw = video.videoWidth
-  const vh = video.videoHeight
-  if (!vw || !vh) return
+  if (!asset.texture || !asset.video) return
 
-  const scale = Math.max(w / vw, h / vh)
-  const dw = vw * scale
-  const dh = vh * scale
-  const dx = (w - dw) * 0.5
-  const dy = (h - dh) * 0.5
+  // Update video currentTime based on scene progress
+  const targetTime = sceneDef.videoTimeStart + sceneProgress * (sceneDef.videoTimeEnd - sceneDef.videoTimeStart)
+  if (Math.abs(asset.video.currentTime - targetTime) > 0.1) {
+    asset.video.currentTime = targetTime
+  }
 
-  ctx.save()
-  ctx.drawImage(video, dx, dy, dw, dh)
+  // Update video texture with current frame
+  ctx.bindTexture(ctx.TEXTURE_2D, asset.texture)
+  ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, asset.video)
 
-  // Apply same overlays as frame sequences for consistency
-  applySceneOverlay(ctx, w, h, sceneProgress, sceneDef)
+  const prog = programsRef.current.get(sceneDef.transition) || programsRef.current.get('none')!
+  ctx.useProgram(prog)
 
-  ctx.restore()
+  ctx.uniform1f(ctx.getUniformLocation(prog, 'u_progress'), sceneProgress)
+  ctx.uniform2f(ctx.getUniformLocation(prog, 'u_resolution'), w, h)
+  ctx.uniform1f(ctx.getUniformLocation(prog, 'u_time'), frame * 0.016)
+
+  ctx.activeTexture(ctx.TEXTURE0)
+  ctx.bindTexture(ctx.TEXTURE_2D, asset.texture)
+  ctx.uniform1i(ctx.getUniformLocation(prog, 'u_texture'), 0)
+
+  // Reset blend for video (no cross-fade)
+  const uBlendLoc = ctx.getUniformLocation(prog, 'u_blend')
+  if (uBlendLoc) {
+    ctx.uniform1f(uBlendLoc, 0.0)
+  }
+
+  ctx.drawArrays(ctx.TRIANGLE_STRIP, 0, 4)
 }
 
 function drawProceduralFallback(
-  ctx: CanvasRenderingContext2D,
+  ctx: WebGLRenderingContext,
   w: number,
   h: number,
   p: number,
   sceneDef: typeof SCENES[0],
   t: number
 ) {
-  switch (sceneDef.id) {
-    case 'classical':
-      renderClassical(ctx, w, h, p, t)
-      break
-    case 'cream-fabric':
-      renderCreamFabric(ctx, w, h, p, t)
-      break
-    case 'red-cream-fabric':
-      renderRedCreamFabric(ctx, w, h, p, t)
-      break
-    case 'orchard':
-      renderOrchard(ctx, w, h, p, t)
-      break
-    case 'hands-fruit':
-      renderHandsFruit(ctx, w, h, p, t)
-      break
-    case 'blue-fabric':
-      renderBlueFabric(ctx, w, h, p, t)
-      break
-    case 'portrait-fabric':
-      renderPortraitFabric(ctx, w, h, p, t)
-      break
-    case 'orchard-return':
-      renderOrchardReturn(ctx, w, h, p, t)
-      break
-    case 'final-blue':
-      renderFinalBlue(ctx, w, h, p, t)
-      break
-    case 'cobalt-hold':
-      renderCobaltHold(ctx, w, h, p, t)
-      break
-  }
-}
-
-// Procedural fallback renderers (kept for when assets fail to load)
-function renderClassical(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  const gradient = ctx.createRadialGradient(w * 0.5, h * 0.3, 0, w * 0.5, h * 0.3, Math.max(w, h) * 0.8)
-  gradient.addColorStop(0, `rgba(245, 230, 211, ${0.15 * p})`)
-  gradient.addColorStop(0.4, `rgba(160, 120, 88, ${0.08 * p})`)
-  gradient.addColorStop(1, 'rgba(11, 10, 9, 1)')
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, w, h)
-}
-
-function renderCreamFabric(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  const baseGradient = ctx.createLinearGradient(0, 0, 0, h)
-  baseGradient.addColorStop(0, '#F5E6D3')
-  baseGradient.addColorStop(0.5, '#E8D5C4')
-  baseGradient.addColorStop(1, '#D4C4B0')
-  ctx.fillStyle = baseGradient
-  ctx.fillRect(0, 0, w, h)
-
-  ctx.save()
-  ctx.globalAlpha = 0.6 * p
-  for (let i = 0; i < 5; i++) {
-    const y = h * (0.15 + i * 0.18) + Math.sin(t * 0.5 + i) * h * 0.02
-    const amp = h * 0.03 * (1 - p * 0.5)
-    ctx.beginPath()
-    ctx.moveTo(0, y)
-    for (let x = 0; x <= w; x += 10) {
-      ctx.lineTo(x, y + Math.sin(x * 0.01 + t * 0.3 + i) * amp)
-    }
-    ctx.strokeStyle = `rgba(135, 116, 105, ${0.3 * p})`
-    ctx.lineWidth = 2
-    ctx.stroke()
-  }
-  ctx.restore()
-}
-
-function renderRedCreamFabric(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  const gradient = ctx.createLinearGradient(0, 0, 0, h)
-  const redStop = 0.3 + p * 0.4
-  gradient.addColorStop(0, '#F5E6D3')
-  gradient.addColorStop(redStop - 0.1, '#F5E6D3')
-  gradient.addColorStop(redStop, '#C4745E')
-  gradient.addColorStop(1, '#A0523D')
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, w, h)
-}
-
-function renderOrchard(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  const skyGradient = ctx.createLinearGradient(0, 0, 0, h * 0.6)
-  skyGradient.addColorStop(0, '#1a3a2e')
-  skyGradient.addColorStop(1, '#2d5a3e')
-  ctx.fillStyle = skyGradient
-  ctx.fillRect(0, 0, w, h * 0.6)
-
-  const groundGradient = ctx.createLinearGradient(0, h * 0.6, 0, h)
-  groundGradient.addColorStop(0, '#3d5a3e')
-  groundGradient.addColorStop(1, '#2a3d2e')
-  ctx.fillStyle = groundGradient
-  ctx.fillRect(0, h * 0.6, w, h * 0.4)
-}
-
-function renderHandsFruit(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  const gradient = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.7)
-  gradient.addColorStop(0, `rgba(245, 230, 211, ${0.2 * p})`)
-  gradient.addColorStop(0.5, `rgba(160, 120, 88, ${0.1 * p})`)
-  gradient.addColorStop(1, 'rgba(29, 28, 25, 1)')
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, w, h)
-}
-
-function renderBlueFabric(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  const warmGradient = ctx.createLinearGradient(0, 0, 0, h)
-  warmGradient.addColorStop(0, '#F5E6D3')
-  warmGradient.addColorStop(0.5, '#E8D5C4')
-  warmGradient.addColorStop(1, '#D4C4B0')
-
-  const blueGradient = ctx.createLinearGradient(0, 0, 0, h)
-  blueGradient.addColorStop(0, '#11121E')
-  blueGradient.addColorStop(0.5, '#0C0D19')
-  blueGradient.addColorStop(1, '#080910')
-
-  ctx.save()
-  const bleedY = h * (1 - p * 1.2)
-
-  ctx.fillStyle = warmGradient
-  ctx.fillRect(0, 0, w, Math.max(0, bleedY))
-
-  const blendHeight = h * 0.3
-  const blendTop = Math.max(0, bleedY - blendHeight)
-  for (let y = blendTop; y < bleedY; y++) {
-    const localP = (y - blendTop) / blendHeight
-    const eased = 1 - Math.pow(1 - localP, 3)
-    const r = Math.round(245 * (1 - eased) + 12 * eased)
-    const g = Math.round(230 * (1 - eased) + 13 * eased)
-    const b = Math.round(211 * (1 - eased) + 25 * eased)
-    ctx.fillStyle = `rgb(${r}, ${g}, ${b})`
-    ctx.fillRect(0, y, w, 1)
-  }
-
-  ctx.fillStyle = blueGradient
-  ctx.fillRect(0, bleedY, w, h - bleedY)
-  ctx.restore()
-}
-
-function renderPortraitFabric(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  const gradient = ctx.createRadialGradient(w * 0.5, h * 0.35, 0, w * 0.5, h * 0.35, Math.max(w, h) * 0.8)
-  gradient.addColorStop(0, '#11121E')
-  gradient.addColorStop(0.4, '#0C0D19')
-  gradient.addColorStop(1, '#080910')
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, w, h)
-}
-
-function renderOrchardReturn(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  renderOrchard(ctx, w, h, p, t + 100)
-}
-
-function renderFinalBlue(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  const gradient = ctx.createLinearGradient(0, 0, 0, h)
-  const midStop = 0.2 + p * 0.6
-  gradient.addColorStop(0, '#11121E')
-  gradient.addColorStop(midStop, '#0C0D19')
-  gradient.addColorStop(1, '#080910')
-  ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, w, h)
-}
-
-function renderCobaltHold(ctx: CanvasRenderingContext2D, w: number, h: number, p: number, t: number) {
-  ctx.fillStyle = '#0C0D19'
-  ctx.fillRect(0, 0, w, h)
-
-  if (p > 0.1) {
-    const vignette = ctx.createRadialGradient(w * 0.5, h * 0.5, 0, w * 0.5, h * 0.5, Math.max(w, h) * 0.7)
-    vignette.addColorStop(0, 'rgba(12, 13, 25, 0)')
-    vignette.addColorStop(0.7, 'rgba(12, 13, 25, 0)')
-    vignette.addColorStop(1, 'rgba(8, 9, 16, 0.8)')
-    ctx.fillStyle = vignette
-    ctx.fillRect(0, 0, w, h)
-  }
+  ctx.clearColor(0.043, 0.039, 0.035, 1.0)
+  ctx.clear(ctx.COLOR_BUFFER_BIT)
 }
