@@ -27,8 +27,9 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://my-next-site-eta.vercel.app'),
   title: 'DIVINUM — Independent Creative Studio',
-  description: 'DIVINUM explores the intersection of digital art, architecture, fashion, and technology. An avant-garde creative studio based in London.',
+  description: 'DIVINUM is an independent creative studio for culture-shaping brands, spaces and ideas. Digital experiences, brand worlds and creative technology.',
   alternates: {
     canonical: '/',
   },
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
     siteName: 'DIVINUM',
     url: '/',
     title: 'DIVINUM — Independent Creative Studio',
-    description: 'DIVINUM explores the intersection of digital art, architecture, fashion, and technology.',
+    description: 'An independent creative studio for culture-shaping brands, spaces and ideas.',
     images: [
       {
         url: '/og.jpg',
@@ -51,7 +52,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'DIVINUM — Independent Creative Studio',
-    description: 'DIVINUM explores the intersection of digital art, architecture, fashion, and technology.',
+    description: 'An independent creative studio for culture-shaping brands, spaces and ideas.',
     images: ['/og.jpg'],
   },
   robots: {
@@ -83,6 +84,18 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            additionalType: 'https://schema.org/ProfessionalService',
+            name: 'DIVINUM',
+            url: 'https://my-next-site-eta.vercel.app',
+            description: 'Independent creative studio for culture-shaping brands, spaces and ideas.',
+            areaServed: 'Worldwide',
+          }) }}
+        />
       </head>
       <body className="bg-obsidian antialiased">
         {children}
