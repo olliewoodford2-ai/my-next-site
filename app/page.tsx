@@ -37,6 +37,15 @@ const services = [
   ['04', 'Brand worlds', 'The language, visual system and launch moments that give ambitious work a longer life.'],
 ]
 
+const sceneCaptions = {
+  opening: ['Enter the impossible', 'A studio for the unseen'],
+  hero: ['Meaning takes form', '01 / 06 — Hero'],
+  genesis: ['Form, in motion', '02 / 06 — Genesis'],
+  oracle: ['A signal, held', '03 / 06 — Oracle'],
+  afterimage: ['What remains moves', '04 / 06 — Afterimage'],
+  finale: ['Leave a trace', '05 / 06 — Finale'],
+} as const
+
 function SceneContainer() {
   return (
     <DynamicCanvas
@@ -99,6 +108,28 @@ function SoundToggle() {
   )
 }
 
+function CinematicCaption() {
+  const { currentScene, sceneProgress } = useScrollStore()
+  const [title, detail] = sceneCaptions[currentScene]
+  const reveal = Math.min(1, Math.max(0, sceneProgress * 2.4))
+
+  return (
+    <div
+      className="scene-caption"
+      aria-hidden="true"
+      key={currentScene}
+      style={{
+        opacity: reveal,
+        transform: `translate3d(0, ${(1 - reveal) * 28}px, 0)`,
+      }}
+    >
+      <span className="scene-caption-detail">{detail}</span>
+      <strong>{title}</strong>
+      <span className="scene-caption-line" />
+    </div>
+  )
+}
+
 function EnquiryForm() {
   const [submitted, setSubmitted] = useState(false)
 
@@ -138,6 +169,7 @@ export default function Home() {
       <a className="skip-link" href="#main">Skip to content</a>
       <SceneContainer />
       <div className="canvas-scrim" aria-hidden="true" />
+      <CinematicCaption />
       <CustomCursor />
 
       <header className="site-header">
@@ -189,7 +221,7 @@ export default function Home() {
 
         <section className="content-section ventures section-shell" id="ventures" aria-labelledby="ventures-title">
           <div className="section-heading"><span className="eyebrow">Associated ventures</span><span className="section-number">05</span></div>
-          <div className="ventures-heading"><h2 id="ventures-title">Independent ideas,<br /><em>carefully considered.</em></h2><p>Alongside client work, we are building a small constellation of self-initiated worlds. Live URLs will be added when verified.</p></div>
+          <div className="ventures-heading"><h2 id="ventures-title">Independent ideas,<br /><em>carefully considered.</em></h2><p>Alongside client work, we are building a small constellation of self-initiated worlds, each with its own atmosphere and point of view.</p></div>
           <div className="venture-grid">
             <a className="venture-card" href="https://olliewoodford2-ai.github.io/Maison-Aurelle/" target="_blank" rel="noreferrer">
               <div className="venture-mark">MA</div>

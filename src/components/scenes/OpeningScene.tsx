@@ -15,15 +15,15 @@ export function OpeningScene() {
   const { targetX, targetY } = useCustomCursor()
   const sound = useSoundManager()
 
-  const pearlRef = useRef<THREE.Group>(null)
+  const orbRef = useRef<THREE.Group>(null)
   const particlesRef = useRef<THREE.Points>(null)
   const lightRef = useRef<THREE.PointLight>(null)
   const textRef = useRef<HTMLDivElement>(null)
   const animationRef = useRef<gsap.core.Timeline>()
   const hasAnimatedRef = useRef(false)
 
-  const pearlGeometry = useMemo(() => new THREE.SphereGeometry(0.5, 64, 64), [])
-  const pearlMaterial = useMemo(
+  const orbGeometry = useMemo(() => new THREE.SphereGeometry(0.5, 64, 64), [])
+  const orbMaterial = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
         color: 0x8b8b8b,
@@ -92,7 +92,7 @@ export function OpeningScene() {
       animationRef.current = gsap.timeline({ defaults: { ease: 'power2.out' } })
 
       animationRef.current
-        .to(pearlRef.current?.scale || { x: 0, y: 0, z: 0 }, {
+        .to(orbRef.current?.scale || { x: 0, y: 0, z: 0 }, {
           x: 1,
           y: 1,
           z: 1,
@@ -110,10 +110,10 @@ export function OpeningScene() {
             duration: 3,
             onUpdate: function () {
               const target = this.targets()[0]
-              if (pearlMaterial) {
-                pearlMaterial.color.setRGB(target.r, target.g, target.b)
-                pearlMaterial.metalness = target.metalness
-                pearlMaterial.roughness = target.roughness
+              if (orbMaterial) {
+                orbMaterial.color.setRGB(target.r, target.g, target.b)
+                orbMaterial.metalness = target.metalness
+                orbMaterial.roughness = target.roughness
               }
             },
           },
@@ -142,22 +142,22 @@ export function OpeningScene() {
 
       sound.playSequence([65.41, 82.41, 98.00, 130.81], 800, 'sine', 0.1)
     }
-  }, [isActive, sound, pearlMaterial, particleMaterial])
+  }, [isActive, sound, orbMaterial, particleMaterial])
 
   useFrame((state, delta) => {
     if (!isActive) return
 
     const time = state.clock.getElapsedTime()
 
-    if (pearlRef.current) {
+    if (orbRef.current) {
       const mouseX = (targetX - window.innerWidth / 2) / window.innerWidth
       const mouseY = (targetY - window.innerHeight / 2) / window.innerHeight
 
-      pearlRef.current.position.x += (mouseX * 0.5 - pearlRef.current.position.x) * 0.02
-      pearlRef.current.position.y += (-mouseY * 0.5 - pearlRef.current.position.y) * 0.02
+      orbRef.current.position.x += (mouseX * 0.5 - orbRef.current.position.x) * 0.02
+      orbRef.current.position.y += (-mouseY * 0.5 - orbRef.current.position.y) * 0.02
 
-      pearlRef.current.rotation.x += 0.001
-      pearlRef.current.rotation.y += 0.002
+      orbRef.current.rotation.x += 0.001
+      orbRef.current.rotation.y += 0.002
     }
 
     if (particlesRef.current) {
@@ -216,10 +216,10 @@ export function OpeningScene() {
 
   return (
     <>
-      <group ref={pearlRef} scale={0.001}>
+      <group ref={orbRef} scale={0.001}>
         <mesh
-          geometry={pearlGeometry}
-          material={pearlMaterial}
+          geometry={orbGeometry}
+          material={orbMaterial}
           castShadow
           receiveShadow
         />

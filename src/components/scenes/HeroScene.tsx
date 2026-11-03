@@ -15,16 +15,16 @@ export function HeroScene() {
   const { targetX, targetY } = useCustomCursor()
   const sound = useSoundManager()
 
-  const pearRef = useRef<THREE.Group>(null)
-  const pearlGroupRef = useRef<THREE.Group>(null)
+  const formRef = useRef<THREE.Group>(null)
+  const formOrbitRef = useRef<THREE.Group>(null)
   const particlesRef = useRef<THREE.Points>(null)
   const volumeLightRef = useRef<THREE.Mesh>(null)
   const cameraRef = useRef<THREE.Camera>()
   const animationRef = useRef<gsap.core.Timeline>()
   const hasAnimatedRef = useRef(false)
 
-  const pearGeometry = useMemo(() => new THREE.SphereGeometry(2, 128, 128), [])
-  const pearMaterial = useMemo(
+  const formGeometry = useMemo(() => new THREE.SphereGeometry(2, 128, 128), [])
+  const formMaterial = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
         color: 0xc9a84c,
@@ -131,7 +131,7 @@ export function HeroScene() {
       animationRef.current = gsap.timeline({ defaults: { ease: 'power2.out' } })
 
       animationRef.current
-        .from(pearRef.current?.scale || { x: 0, y: 0, z: 0 }, {
+        .from(formRef.current?.scale || { x: 0, y: 0, z: 0 }, {
           x: 0,
           y: 0,
           z: 0,
@@ -159,20 +159,20 @@ export function HeroScene() {
     const time = state.clock.getElapsedTime()
     const sceneProgress = progress
 
-    if (pearRef.current) {
+    if (formRef.current) {
       const mouseX = (targetX - window.innerWidth / 2) / window.innerWidth
       const mouseY = (targetY - window.innerHeight / 2) / window.innerHeight
 
-      pearRef.current.position.x += (mouseX * 1 - pearRef.current.position.x) * 0.01
-      pearRef.current.position.y += (-mouseY * 1 - pearRef.current.position.y) * 0.01
+      formRef.current.position.x += (mouseX * 1 - formRef.current.position.x) * 0.01
+      formRef.current.position.y += (-mouseY * 1 - formRef.current.position.y) * 0.01
 
-      pearRef.current.rotation.x += 0.0005
-      pearRef.current.rotation.y += 0.001
-      pearRef.current.rotation.z += 0.0003
+      formRef.current.rotation.x += 0.0005
+      formRef.current.rotation.y += 0.001
+      formRef.current.rotation.z += 0.0003
     }
 
-    if (pearlGroupRef.current) {
-      pearlGroupRef.current.rotation.y = sceneProgress * Math.PI * 2
+    if (formOrbitRef.current) {
+      formOrbitRef.current.rotation.y = sceneProgress * Math.PI * 2
     }
 
     if (volumeLightRef.current) {
@@ -224,17 +224,17 @@ export function HeroScene() {
 
   return (
     <>
-      <group ref={pearlGroupRef}>
+      <group ref={formOrbitRef}>
         <mesh
           ref={volumeLightRef}
           geometry={volumeGeometry}
           material={volumeMaterial}
         />
 
-        <group ref={pearRef} scale={0.001}>
+        <group ref={formRef} scale={0.001}>
           <mesh
-            geometry={pearGeometry}
-            material={pearMaterial}
+            geometry={formGeometry}
+            material={formMaterial}
             castShadow
             receiveShadow
           />
