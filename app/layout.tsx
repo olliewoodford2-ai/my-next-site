@@ -1,5 +1,30 @@
 import type { Metadata, Viewport } from 'next'
+import { Playfair_Display, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
+
+const playfairDisplay = Playfair_Display({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-editorial',
+  display: 'swap',
+  preload: true,
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-sans',
+  display: 'swap',
+  preload: true,
+})
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-mono',
+  display: 'swap',
+  preload: true,
+})
 
 export const metadata: Metadata = {
   title: 'DIVINUM — Independent Creative Studio',
@@ -54,13 +79,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en-GB" className="dark" style={{ scrollbarWidth: 'none' }}>
+    <html lang="en-GB" className={`${playfairDisplay.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} dark`} style={{ scrollbarWidth: 'none' }}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="bg-obsidian antialiased cursor-none">
         {children}

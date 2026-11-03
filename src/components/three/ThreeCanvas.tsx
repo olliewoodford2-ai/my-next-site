@@ -24,6 +24,14 @@ interface ThreeCanvasProps {
   className?: string
 }
 
+// Internal component to capture camera/scene refs via useFrame (must be INSIDE Canvas)
+function CanvasRefsCapture({ onCapture }: { onCapture: (state: any) => void }) {
+  useFrame((state, delta) => {
+    onCapture(state)
+  })
+  return null
+}
+
 export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasProps) {
   const {
     fov = 50,
@@ -39,10 +47,10 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
   const sceneRef = useRef<THREE.Scene>()
   const composerRef = useRef<any>()
 
-  useFrame((state, delta) => {
+  const captureRefs = useCallback((state: any) => {
     cameraRef.current = state.camera
     sceneRef.current = state.scene
-  })
+  }, [])
 
   const onCreated = useCallback((state: any) => {
     state.gl.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -70,6 +78,7 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
     >
       <Suspense fallback={null}>
         {children}
+        <CanvasRefsCapture onCapture={captureRefs} />
       </Suspense>
 
       {enablePostProcessing && (
