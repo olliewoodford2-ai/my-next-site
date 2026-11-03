@@ -32,6 +32,60 @@ function CanvasRefsCapture({ onCapture }: { onCapture: (state: any) => void }) {
   return null
 }
 
+// Separate component to handle Canvas initialization safely
+function CanvasInitializer({
+  fov,
+  near,
+  far,
+  backgroundColor
+}: {
+  fov: number
+  near: number
+  far: number
+  backgroundColor: number
+}) {
+  const { gl: glRef, scene: sceneRef, camera: cameraRef } = useThree()
+  const initializedRef = useRef(false)
+
+  useEffect(() => {
+    const gl = glRef
+    const scene = sceneRef
+    if (!gl || !scene || initializedRef.current) return
+
+    try {
+      gl.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      gl.shadowMap.enabled = true
+      gl.shadowMap.type = THREE.PCFSoftShadowMap
+      gl.toneMapping = THREE.ACESFilmicToneMapping
+      gl.toneMappingExposure = 1
+
+      scene.background = new THREE.Color(backgroundColor)
+      scene.fog = new THREE.FogExp2(backgroundColor, 0.002)
+
+      initializedRef.current = true
+    } catch (e) {
+      console.warn('Canvas initialization failed:', e)
+    }
+  }, [glRef, sceneRef, backgroundColor])
+
+  // Also update camera settings when they change
+  useEffect(() => {
+    const camera = cameraRef as THREE.PerspectiveCamera | null
+    if (!camera) return
+
+    try {
+      camera.fov = fov
+      camera.near = near
+      camera.far = far
+      camera.updateProjectionMatrix()
+    } catch (e) {
+      console.warn('Camera update failed:', e)
+    }
+  }, [cameraRef, fov, near, far])
+
+  return null
+}
+
 export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasProps) {
   const {
     fov = 50,
@@ -52,33 +106,16 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
     sceneRef.current = state.scene
   }, [])
 
-  const onCreated = useCallback((state: any) => {
-    state.gl.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    state.gl.shadowMap.enabled = true
-    state.gl.shadowMap.type = THREE.PCFSoftShadowMap
-    state.gl.toneMapping = THREE.ACESFilmicToneMapping
-    state.gl.toneMappingExposure = 1
-    state.gl.physicallyCorrectLights = true
-
-    state.camera.fov = fov
-    state.camera.near = near
-    state.camera.far = far
-    state.camera.updateProjectionMatrix()
-
-    state.gl.scene.background = new THREE.Color(backgroundColor)
-    state.gl.scene.fog = new THREE.FogExp2(backgroundColor, 0.002)
-  }, [fov, near, far, backgroundColor])
-
   return (
     <Canvas
       className={className}
       camera={{ position: [0, 0, 10], fov, near, far }}
-      onCreated={onCreated}
       gl={{ preserveDrawingBuffer: false, powerPreference: 'high-performance', antialias: true }}
     >
       <Suspense fallback={null}>
         {children}
         <CanvasRefsCapture onCapture={captureRefs} />
+        <CanvasInitializer fov={fov} near={near} far={far} backgroundColor={backgroundColor} />
       </Suspense>
 
       {enablePostProcessing && (
