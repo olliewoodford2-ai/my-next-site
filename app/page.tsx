@@ -178,6 +178,7 @@ export default function Home() {
             <a key={id} href={`#${id}`} onClick={() => setMenuOpen(false)}>{label}</a>
           ))}
         </nav>
+        <a className="header-cta" href="#enquiries" onClick={() => setMenuOpen(false)}>Start a project <span aria-hidden="true">↗</span></a>
         <button className="menu-toggle" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="main-nav">
           <span>{menuOpen ? 'Close' : 'Menu'}</span><i aria-hidden="true" />
         </button>

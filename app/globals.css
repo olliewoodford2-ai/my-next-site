@@ -492,6 +492,9 @@ body {
 .main-nav { display: flex; gap: 2rem; margin-left: auto; margin-right: 2.4rem; }
 .main-nav a, .menu-toggle { color: var(--muted-ink); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; transition: color .3s ease; }
 .main-nav a:hover, .main-nav a:focus-visible { color: var(--paper); }
+.header-cta { display: inline-flex; align-items: center; gap: .75rem; border: 1px solid rgba(233,228,218,.35); padding: .7rem .85rem; color: var(--paper); font-size: .62rem; letter-spacing: .12em; text-transform: uppercase; transition: border-color .3s ease, background .3s ease, color .3s ease; }
+.header-cta span { color: var(--accent); }
+.header-cta:hover, .header-cta:focus-visible { border-color: var(--accent); background: var(--paper); color: var(--ink); }
 .menu-toggle { display: none; align-items: center; gap: .75rem; cursor: pointer; }
 .menu-toggle i { display: block; width: 1.5rem; height: 1px; background: currentColor; }
 .section-shell { position: relative; z-index: 2; width: min(100% - 6.4rem, 90rem); margin: 0 auto; }
@@ -582,6 +585,7 @@ h2 { font-size: clamp(3.2rem, 7vw, 7rem); }
 
 @media (max-width: 800px) {
   .site-header { padding: 1.2rem 1.25rem; }
+  .header-cta { display: none; }
   .menu-toggle { display: flex; position: relative; z-index: 2; }
   .main-nav { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; gap: 1.4rem; margin: 0; padding: 5rem 1.25rem; background: rgba(17,17,15,.97); transform: translateY(-100%); transition: transform .5s var(--ease-cinematic); }
   .main-nav.is-open { transform: translateY(0); }
