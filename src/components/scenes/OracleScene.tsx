@@ -269,7 +269,7 @@ export function OracleScene() {
       particlesRef.current.rotation.y += 0.00002
     }
 
-    if (cameraRef.current && state.camera) {
+    if (state.camera) {
       const camera = state.camera as THREE.PerspectiveCamera
       camera.position.z = 20 + Math.sin(progress * Math.PI * 2) * 5
       camera.lookAt(0, 0, 0)

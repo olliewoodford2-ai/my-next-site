@@ -214,7 +214,7 @@ export function HeroScene() {
       particlesRef.current.rotation.y += 0.00005
     }
 
-    if (cameraRef.current && state.camera) {
+    if (state.camera) {
       const camera = state.camera as THREE.PerspectiveCamera
       camera.position.z = 15 - sceneProgress * 5
       camera.position.y = Math.sin(sceneProgress * Math.PI) * 2

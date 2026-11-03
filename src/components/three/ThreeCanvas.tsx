@@ -121,6 +121,17 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
       gl={{ preserveDrawingBuffer: false, powerPreference: 'high-performance', antialias: true }}
     >
       <Suspense fallback={null}>
+        <ambientLight intensity={0.18} color={0x8f8aa0} />
+        <directionalLight
+          position={[4, 8, 6]}
+          intensity={0.55}
+          color={0xe8d4a0}
+        />
+        <directionalLight
+          position={[-6, 2, -4]}
+          intensity={0.35}
+          color={0x6f7fa8}
+        />
         {children}
         <CanvasRefsCapture onCapture={captureRefs} />
         <CanvasInitializer fov={fov} near={near} far={far} backgroundColor={backgroundColor} />
@@ -182,7 +193,7 @@ export function SceneProvider({ children, sceneId }: SceneProviderProps) {
 
   return (
     <SceneContext.Provider value={sceneContext}>
-      {children}
+      <group visible={isActive}>{children}</group>
     </SceneContext.Provider>
   )
 }

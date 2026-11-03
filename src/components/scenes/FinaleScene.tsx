@@ -4,7 +4,6 @@ import { useRef, useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { gsap } from 'gsap'
 import { useSceneContext, useSceneProgress } from '@/components/three/ThreeCanvas'
 import { useCustomCursor } from '@/hooks/useCustomCursor'
@@ -62,8 +61,7 @@ export function FinaleScene() {
       materials.push(mat)
     }
 
-    const merged = mergeGeometries(geometries, false)
-    return { geometry: merged!, materials }
+    return { geometries, materials }
   }, [])
 
   const particleGeometry = useMemo(() => {
@@ -357,7 +355,7 @@ export function FinaleScene() {
       goldenParticlesRef.current.geometry.attributes.life.needsUpdate = true
     }
 
-    if (cameraRef.current && state.camera) {
+    if (state.camera) {
       const camera = state.camera as THREE.PerspectiveCamera
       camera.position.z = 30 + progress * 20
       camera.position.y = Math.sin(progress * Math.PI * 2) * 5
@@ -368,11 +366,11 @@ export function FinaleScene() {
   return (
     <>
       <group ref={structureRef}>
-        {structureGeometry.materials.map((material, i) => (
+        {structureGeometry.geometries.map((geometry, i) => (
           <mesh
             key={i}
-            geometry={structureGeometry.geometry}
-            material={material}
+            geometry={geometry}
+            material={structureGeometry.materials[i]}
             castShadow
             receiveShadow
           />

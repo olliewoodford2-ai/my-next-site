@@ -340,7 +340,7 @@ export function AfterimageScene() {
       particlesRef.current.rotation.y += 0.00001
     }
 
-    if (cameraRef.current && state.camera) {
+    if (state.camera) {
       const camera = state.camera as THREE.PerspectiveCamera
       camera.position.z = 25 + Math.sin(progress * Math.PI * 4) * 5
       camera.rotation.z = Math.sin(progress * Math.PI * 2) * 0.05

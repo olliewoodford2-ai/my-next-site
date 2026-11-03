@@ -4,7 +4,6 @@ import { useRef, useEffect, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { gsap } from 'gsap'
 import { useSceneContext, useSceneProgress } from '@/components/three/ThreeCanvas'
 import { useCustomCursor } from '@/hooks/useCustomCursor'
@@ -61,8 +60,7 @@ export function GenesisScene() {
       materials.push(mat)
     }
 
-    const merged = mergeGeometries(geometries, false)
-    return { geometry: merged!, materials }
+    return { geometries, materials }
   }, [])
 
   const liquidGeometry = useMemo(() => {
@@ -275,7 +273,7 @@ export function GenesisScene() {
       particlesRef.current.rotation.y += 0.00003
     }
 
-    if (cameraRef.current && state.camera) {
+    if (state.camera) {
       const camera = state.camera as THREE.PerspectiveCamera
       camera.position.y = 5 + Math.sin(progress * Math.PI * 2) * 3
       camera.position.z = 25 - progress * 10
@@ -286,11 +284,11 @@ export function GenesisScene() {
   return (
     <>
       <group ref={architectureRef}>
-        {architectureGeometry.materials.map((material, i) => (
+        {architectureGeometry.geometries.map((geometry, i) => (
           <mesh
             key={i}
-            geometry={architectureGeometry.geometry}
-            material={material}
+            geometry={geometry}
+            material={architectureGeometry.materials[i]}
             castShadow
             receiveShadow
           />
