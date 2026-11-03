@@ -23,7 +23,34 @@ export function useSoundManager() {
   const musicGainRef = useRef<GainNode | null>(null)
   const masterGainRef = useRef<GainNode | null>(null)
   const oscillatorsRef = useRef<Map<string, OscillatorNode>>(new Map())
+  const timeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set())
   const initializedRef = useRef(false)
+  const isMutedRef = useRef(isMuted)
+  const masterVolumeRef = useRef(masterVolume)
+  const ambientVolumeRef = useRef(ambientVolume)
+  const effectsVolumeRef = useRef(effectsVolume)
+  const musicVolumeRef = useRef(musicVolume)
+
+  // Keep refs in sync with store
+  useEffect(() => {
+    isMutedRef.current = isMuted
+  }, [isMuted])
+
+  useEffect(() => {
+    masterVolumeRef.current = masterVolume
+  }, [masterVolume])
+
+  useEffect(() => {
+    ambientVolumeRef.current = ambientVolume
+  }, [ambientVolume])
+
+  useEffect(() => {
+    effectsVolumeRef.current = effectsVolume
+  }, [effectsVolume])
+
+  useEffect(() => {
+    musicVolumeRef.current = musicVolume
+  }, [musicVolume])
 
   const initializeAudio = useCallback(async () => {
     if (initializedRef.current) return
@@ -37,10 +64,10 @@ export function useSoundManager() {
       effectsGainRef.current = audioContext.createGain()
       musicGainRef.current = audioContext.createGain()
 
-      masterGainRef.current.gain.value = masterVolume
-      ambientGainRef.current.gain.value = ambientVolume
-      effectsGainRef.current.gain.value = effectsVolume
-      musicGainRef.current.gain.value = musicVolume
+      masterGainRef.current.gain.value = masterVolumeRef.current
+      ambientGainRef.current.gain.value = ambientVolumeRef.current
+      effectsGainRef.current.gain.value = effectsVolumeRef.current
+      musicGainRef.current.gain.value = musicVolumeRef.current
 
       ambientGainRef.current.connect(masterGainRef.current)
       effectsGainRef.current.connect(masterGainRef.current)
@@ -56,11 +83,11 @@ export function useSoundManager() {
     } catch (error) {
       console.warn('Audio initialization failed:', error)
     }
-  }, [masterVolume, ambientVolume, effectsVolume, musicVolume])
+  }, [])
 
   const playAmbientTone = useCallback(
     (frequency: number, duration: number, type: OscillatorType = 'sine', gain = 0.1) => {
-      if (!audioContextRef.current || !ambientGainRef.current || isMuted) return
+      if (!audioContextRef.current || !ambientGainRef.current || isMutedRef.current) return
 
       const oscillator = audioContextRef.current.createOscillator()
       const gainNode = audioContextRef.current.createGain()
@@ -77,12 +104,12 @@ export function useSoundManager() {
 
       return oscillator
     },
-    [isMuted]
+    []
   )
 
   const playEffectTone = useCallback(
     (frequency: number, duration: number, type: OscillatorType = 'sine', gain = 0.2) => {
-      if (!audioContextRef.current || !effectsGainRef.current || isMuted) return
+      if (!audioContextRef.current || !effectsGainRef.current || isMutedRef.current) return
 
       const oscillator = audioContextRef.current.createOscillator()
       const gainNode = audioContextRef.current.createGain()
@@ -99,12 +126,12 @@ export function useSoundManager() {
 
       return oscillator
     },
-    [isMuted]
+    []
   )
 
   const playMusicTone = useCallback(
     (frequency: number, duration: number, type: OscillatorType = 'sine', gain = 0.15) => {
-      if (!audioContextRef.current || !musicGainRef.current || isMuted) return
+      if (!audioContextRef.current || !musicGainRef.current || isMutedRef.current) return
 
       const oscillator = audioContextRef.current.createOscillator()
       const gainNode = audioContextRef.current.createGain()
@@ -121,7 +148,7 @@ export function useSoundManager() {
 
       return oscillator
     },
-    [isMuted]
+    []
   )
 
   const playSequence = useCallback(
@@ -129,13 +156,13 @@ export function useSoundManager() {
       const timeouts: NodeJS.Timeout[] = []
       frequencies.forEach((freq, i) => {
         const timeout = setTimeout(() => {
-          // Check current mute state at execution time, not capture time
-          const { isMuted: currentMuted } = useSoundStore.getState()
-          if (!currentMuted) {
+          // Check current mute state at execution time via ref
+          if (!isMutedRef.current) {
             playAmbientTone(freq, interval * 1.5, type, gain)
           }
         }, i * interval)
         timeouts.push(timeout)
+        timeoutsRef.current.add(timeout)
       })
       return timeouts
     },
@@ -145,8 +172,8 @@ export function useSoundManager() {
   const setMasterVolumeValue = useCallback(
     (volume: number) => {
       setMasterVolume(volume)
-      if (masterGainRef.current) {
-        masterGainRef.current.gain.linearRampToValueAtTime(volume, audioContextRef.current!.currentTime + 0.1)
+      if (masterGainRef.current && audioContextRef.current) {
+        masterGainRef.current.gain.linearRampToValueAtTime(volume, audioContextRef.current.currentTime + 0.1)
       }
     },
     [setMasterVolume]
@@ -155,8 +182,8 @@ export function useSoundManager() {
   const setAmbientVolumeValue = useCallback(
     (volume: number) => {
       setAmbientVolume(volume)
-      if (ambientGainRef.current) {
-        ambientGainRef.current.gain.linearRampToValueAtTime(volume, audioContextRef.current!.currentTime + 0.1)
+      if (ambientGainRef.current && audioContextRef.current) {
+        ambientGainRef.current.gain.linearRampToValueAtTime(volume, audioContextRef.current.currentTime + 0.1)
       }
     },
     [setAmbientVolume]
@@ -165,8 +192,8 @@ export function useSoundManager() {
   const setEffectsVolumeValue = useCallback(
     (volume: number) => {
       setEffectsVolume(volume)
-      if (effectsGainRef.current) {
-        effectsGainRef.current.gain.linearRampToValueAtTime(volume, audioContextRef.current!.currentTime + 0.1)
+      if (effectsGainRef.current && audioContextRef.current) {
+        effectsGainRef.current.gain.linearRampToValueAtTime(volume, audioContextRef.current.currentTime + 0.1)
       }
     },
     [setEffectsVolume]
@@ -175,20 +202,46 @@ export function useSoundManager() {
   const setMusicVolumeValue = useCallback(
     (volume: number) => {
       setMusicVolume(volume)
-      if (musicGainRef.current) {
-        musicGainRef.current.gain.linearRampToValueAtTime(volume, audioContextRef.current!.currentTime + 0.1)
+      if (musicGainRef.current && audioContextRef.current) {
+        musicGainRef.current.gain.linearRampToValueAtTime(volume, audioContextRef.current.currentTime + 0.1)
       }
     },
     [setMusicVolume]
   )
 
   const toggleMute = useCallback(() => {
-    const newMuted = !isMuted
+    const newMuted = !isMutedRef.current
     setMute(newMuted)
-    if (masterGainRef.current) {
-      masterGainRef.current.gain.linearRampToValueAtTime(newMuted ? 0 : masterVolume, audioContextRef.current!.currentTime + 0.1)
+    if (masterGainRef.current && audioContextRef.current) {
+      masterGainRef.current.gain.linearRampToValueAtTime(newMuted ? 0 : masterVolumeRef.current, audioContextRef.current.currentTime + 0.1)
     }
-  }, [isMuted, masterVolume, setMute])
+  }, [setMute])
+
+  // Cleanup function
+  const cleanup = useCallback(() => {
+    // Clear all timeouts
+    timeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+    timeoutsRef.current.clear()
+
+    // Stop all oscillators
+    oscillatorsRef.current.forEach((osc) => {
+      try {
+        osc.stop()
+      } catch {}
+    })
+    oscillatorsRef.current.clear()
+
+    // Close audio context
+    if (audioContextRef.current) {
+      audioContextRef.current.close()
+      audioContextRef.current = null
+    }
+    masterGainRef.current = null
+    ambientGainRef.current = null
+    effectsGainRef.current = null
+    musicGainRef.current = null
+    initializedRef.current = false
+  }, [])
 
   useEffect(() => {
     const handleInteraction = () => {
@@ -206,25 +259,9 @@ export function useSoundManager() {
       document.removeEventListener('click', handleInteraction)
       document.removeEventListener('keydown', handleInteraction)
       document.removeEventListener('mousemove', handleInteraction)
-
-      oscillatorsRef.current.forEach((osc) => {
-        try {
-          osc.stop()
-        } catch {}
-      })
-      oscillatorsRef.current.clear()
-
-      if (audioContextRef.current) {
-        audioContextRef.current.close()
-        audioContextRef.current = null
-      }
-      masterGainRef.current = null
-      ambientGainRef.current = null
-      effectsGainRef.current = null
-      musicGainRef.current = null
-      initializedRef.current = false
+      cleanup()
     }
-  }, [initializeAudio])
+  }, [initializeAudio, cleanup])
 
   return {
     isInitialized: initializedRef.current,
@@ -248,37 +285,53 @@ export function useSoundManager() {
 
 export function useSceneSound(sceneId: string) {
   const sound = useSoundManager()
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const sequenceTimeoutsRef = useRef<Set<NodeJS.Timeout>>(new Set())
 
   useEffect(() => {
     if (!sound.isInitialized) return
 
     const playSceneAmbient = (): NodeJS.Timeout[] => {
+      const timeouts: NodeJS.Timeout[] = []
       switch (sceneId) {
         case 'opening':
-          return sound.playSequence([65.41, 82.41, 98.00, 130.81], 2000, 'sine', 0.05)
+          sound.playSequence([65.41, 82.41, 98.00, 130.81], 2000, 'sine', 0.05).forEach(t => timeouts.push(t))
+          break
         case 'hero':
-          return sound.playSequence([110.00, 146.83, 164.81, 220.00], 3000, 'sine', 0.04)
+          sound.playSequence([110.00, 146.83, 164.81, 220.00], 3000, 'sine', 0.04).forEach(t => timeouts.push(t))
+          break
         case 'genesis':
-          return sound.playSequence([130.81, 174.61, 196.00, 261.63], 2500, 'triangle', 0.06)
+          sound.playSequence([130.81, 174.61, 196.00, 261.63], 2500, 'triangle', 0.06).forEach(t => timeouts.push(t))
+          break
         case 'oracle':
-          return sound.playSequence([73.42, 98.00, 123.47, 146.83], 4000, 'sine', 0.05)
+          sound.playSequence([73.42, 98.00, 123.47, 146.83], 4000, 'sine', 0.05).forEach(t => timeouts.push(t))
+          break
         case 'afterimage':
-          return sound.playSequence([87.31, 116.54, 138.59, 174.61], 3500, 'sine', 0.05)
+          sound.playSequence([87.31, 116.54, 138.59, 174.61], 3500, 'sine', 0.05).forEach(t => timeouts.push(t))
+          break
         case 'finale':
-          return sound.playSequence([146.83, 196.00, 220.00, 293.66], 2000, 'triangle', 0.07)
+          sound.playSequence([146.83, 196.00, 220.00, 293.66], 2000, 'triangle', 0.07).forEach(t => timeouts.push(t))
+          break
         default:
-          return []
+          break
       }
+      return timeouts
     }
 
     const sequenceTimeouts = playSceneAmbient()
-    const interval = setInterval(() => {
-      sequenceTimeouts.push(...playSceneAmbient())
+    sequenceTimeouts.forEach(t => sequenceTimeoutsRef.current.add(t))
+
+    intervalRef.current = setInterval(() => {
+      playSceneAmbient().forEach(t => sequenceTimeoutsRef.current.add(t))
     }, 15000)
 
     return () => {
-      clearInterval(interval)
-      sequenceTimeouts.forEach((timeout) => clearTimeout(timeout))
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+        intervalRef.current = null
+      }
+      sequenceTimeoutsRef.current.forEach((timeout) => clearTimeout(timeout))
+      sequenceTimeoutsRef.current.clear()
     }
   }, [sceneId, sound])
 

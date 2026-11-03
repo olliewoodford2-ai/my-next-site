@@ -29,7 +29,6 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'DIVINUM — Independent Creative Studio',
   description: 'DIVINUM explores the intersection of digital art, architecture, fashion, and technology. An avant-garde creative studio based in London.',
-  metadataBase: new URL('https://divinum.studio'),
   alternates: {
     canonical: '/',
   },
@@ -85,7 +84,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body className="bg-obsidian antialiased cursor-none">
+      <body className="bg-obsidian antialiased">
         {children}
       </body>
     </html>

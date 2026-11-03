@@ -116,19 +116,19 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
         {children}
         <CanvasRefsCapture onCapture={captureRefs} />
         <CanvasInitializer fov={fov} near={near} far={far} backgroundColor={backgroundColor} />
-      </Suspense>
 
-      {enablePostProcessing && (
-        <EffectComposer multisampling={Math.min(window.devicePixelRatio, 2)}>
-          <Bloom
-            intensity={0.3}
-            kernelSize={0.8}
-            luminanceThreshold={0.85}
-            luminanceSmoothing={0.9}
-            height={480}
-          />
-        </EffectComposer>
-      )}
+        {enablePostProcessing && (
+          <EffectComposer multisampling={Math.min(window.devicePixelRatio, 2)}>
+            <Bloom
+              intensity={0.3}
+              kernelSize={0.8}
+              luminanceThreshold={0.85}
+              luminanceSmoothing={0.9}
+              height={480}
+            />
+          </EffectComposer>
+        )}
+      </Suspense>
     </Canvas>
   )
 }

@@ -22,6 +22,7 @@ dist
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # Local env files
 .env*.local
@@ -46,4 +47,7 @@ ehthumbs.db
 Desktop.ini
 
 # Large research files
-research/collected_assets.zip
+research/
+
+# Screenshots
+screenshots/

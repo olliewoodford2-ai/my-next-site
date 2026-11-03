@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
+import { shallow } from 'zustand/shallow'
 import type { ScrollState, CursorState, SoundState, SceneId } from '@/types'
 
 interface ScrollStore extends ScrollState {

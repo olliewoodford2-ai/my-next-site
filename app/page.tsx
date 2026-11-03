@@ -1,8 +1,9 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, Suspense } from 'react'
+import { useEffect, Suspense, useState, useMemo } from 'react'
 import { ThreeCanvas, SceneProvider } from '@/components/three/ThreeCanvas'
+import { ThreeErrorBoundary } from '@/components/three/ThreeErrorBoundary'
 import { OpeningScene } from '@/components/scenes/OpeningScene'
 import { HeroScene } from '@/components/scenes/HeroScene'
 import { GenesisScene } from '@/components/scenes/GenesisScene'
@@ -15,57 +16,77 @@ import { useLenis } from '@/hooks/useLenis'
 import { useSoundManager } from '@/hooks/useSoundManager'
 import { useUIStore } from '@/store'
 import { SCENES } from '@/types'
+import styles from './page.module.css'
 
 // Dynamic import for the canvas to avoid SSR issues
 const DynamicCanvas = dynamic(
   () => import('@/components/three/ThreeCanvas').then((mod) => mod.ThreeCanvas),
-  { ssr: false, loading: () => <div className="fixed inset-0 bg-obsidian" /> }
+  { ssr: false, loading: () => <div className={styles.canvasLoading} /> }
 )
 
+// Wrapped canvas with error boundary
+function CanvasWithErrorBoundary() {
+  return (
+    <ThreeErrorBoundary>
+      <DynamicCanvas
+        sceneConfig={{
+          fov: 50,
+          near: 0.1,
+          far: 1000,
+          backgroundColor: 0x0a0a0a,
+          enablePostProcessing: true,
+        }}
+        className={styles.canvas}
+      >
+        <Suspense fallback={null}>
+          <SceneProvider sceneId="opening">
+            <OpeningScene />
+          </SceneProvider>
+          <SceneProvider sceneId="hero">
+            <HeroScene />
+          </SceneProvider>
+          <SceneProvider sceneId="genesis">
+            <GenesisScene />
+          </SceneProvider>
+          <SceneProvider sceneId="oracle">
+            <OracleScene />
+          </SceneProvider>
+          <SceneProvider sceneId="afterimage">
+            <AfterimageScene />
+          </SceneProvider>
+          <SceneProvider sceneId="finale">
+            <FinaleScene />
+          </SceneProvider>
+        </Suspense>
+      </DynamicCanvas>
+    </ThreeErrorBoundary>
+  )
+}
+
+// LoadingScreen component
 function LoadingScreen() {
   const { loadingProgress, isLoading } = useUIStore()
 
   if (!isLoading) return null
 
   return (
-    <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-obsidian"
-      style={{
-        background: 'linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%)',
-      }}
-      aria-hidden="true"
-    >
-      <div className="text-center">
-        <div
-          className="font-editorial text-display-lg text-ivory mb-8 tracking-tight"
-          style={{
-            filter: 'drop-shadow(0 0 40px rgba(201, 168, 76, 0.3))',
-          }}
-        >
-          DIVINUM
-        </div>
-        <div
-          className="font-sans text-caption text-gold tracking-[0.3em] mb-12"
-        >
-          Independent Creative Studio
-        </div>
-        <div className="w-64 h-px bg-oxidized/30 relative overflow-hidden mx-auto">
+    <div className={styles.loadingScreen} aria-hidden="true">
+      <div className={styles.loadingContent}>
+        <div className={styles.loadingTitle}>DIVINUM</div>
+        <div className={styles.loadingSubtitle}>Independent Creative Studio</div>
+        <div className={styles.loadingBar}>
           <div
-            className="absolute top-0 left-0 h-full bg-gold"
-            style={{
-              width: `${loadingProgress * 100}%`,
-              transition: 'width 0.3s ease-out',
-            }}
+            className={styles.loadingProgress}
+            style={{ width: `${loadingProgress * 100}%` }}
           />
         </div>
-        <div className="font-mono text-micro text-oxidized-light mt-6">
-          {Math.round(loadingProgress * 100)}%
-        </div>
+        <div className={styles.loadingPercent}>{Math.round(loadingProgress * 100)}%</div>
       </div>
     </div>
   )
 }
 
+// SoundToggle component
 function SoundToggle() {
   const { isMuted, toggleMute, masterVolume, setMasterVolume } = useSoundManager()
   const { showSoundToggle } = useUIStore()
@@ -78,10 +99,8 @@ function SoundToggle() {
       onClick={toggleMute}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed bottom-8 right-8 z-50 p-4 rounded-full bg-obsidian/80 backdrop-blur-md border border-gold/30 transition-all duration-300 hover:border-gold/60 hover:bg-obsidian focus:outline-none focus:ring-2 focus:ring-gold/50"
-      style={{
-        transform: isHovered ? 'scale(1.1)' : 'scale(1)',
-      }}
+      className={styles.soundToggle}
+      style={{ transform: isHovered ? 'scale(1.1)' : 'scale(1)' }}
       aria-label={isMuted ? 'Unmute sound' : 'Mute sound'}
       aria-pressed={isMuted}
     >
@@ -94,10 +113,8 @@ function SoundToggle() {
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="text-gold transition-colors duration-300"
-        style={{
-          opacity: isMuted ? 0.5 : 1,
-        }}
+        className={styles.soundIcon}
+        style={{ opacity: isMuted ? 0.5 : 1 }}
       >
         {!isMuted ? (
           <>
@@ -117,9 +134,10 @@ function SoundToggle() {
   )
 }
 
+// SceneProgressIndicator component
 function SceneProgressIndicator() {
   const { currentScene, sceneProgress, progress } = useScrollStore()
-  const { scrollTo } = useLenis()
+  const { scrollToProgress } = useLenis()
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
@@ -132,25 +150,23 @@ function SceneProgressIndicator() {
     if (scene) {
       // Calculate target progress - middle of the scene
       const targetProgress = (scene.startProgress + scene.endProgress) / 2
-      scrollTo(targetProgress, { duration: 2 })
+      scrollToProgress(targetProgress, { duration: 2 })
     }
   }
 
   return (
-    <nav
-      className="fixed right-8 top-1/2 -translate-y-1/2 z-50 flex flex-col items-end gap-6"
-      aria-label="Scene navigation"
-    >
+    <nav className={styles.sceneNav} aria-label="Scene navigation">
       {SCENES.map((scene, index) => (
         <button
           key={scene.id}
-          className="group relative w-10 h-10 flex items-center justify-center"
+          className={styles.sceneButton}
           onClick={() => handleSceneClick(index)}
           aria-label={`Go to ${scene.name}`}
           aria-current={index === activeIndex ? 'true' : 'false'}
+          data-active={index === activeIndex}
         >
           <div
-            className="relative w-2 h-2 rounded-full transition-all duration-500 bg-oxidized/30"
+            className={`${styles.sceneDot} ${index === activeIndex ? styles.active : ''}`}
             style={{
               background: index === activeIndex
                 ? 'linear-gradient(180deg, #C9A84C 0%, #E8D4A0 100%)'
@@ -163,20 +179,14 @@ function SceneProgressIndicator() {
           >
             {index === activeIndex && (
               <div
-                className="absolute inset-0 rounded-full bg-gold/30 animate-ping"
+                className={styles.scenePulse}
                 style={{
                   animation: 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite',
                 }}
               />
             )}
           </div>
-          <div
-            className="absolute right-14 top-1/2 -translate-y-1/2 font-sans text-micro text-oxidized-light opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none"
-            style={{
-              opacity: index === activeIndex ? 1 : 0,
-              transform: index === activeIndex ? 'translateY(-50%) translateX(0)' : 'translateY(-50%) translateX(10px)',
-            }}
-          >
+          <div className={styles.sceneLabel}>
             {scene.name}
           </div>
         </button>
@@ -185,14 +195,12 @@ function SceneProgressIndicator() {
   )
 }
 
-import { useState } from 'react'
-
 function SceneContainer() {
   const sound = useSoundManager()
   const { setLoading, setLoadingProgress } = useUIStore()
 
   useEffect(() => {
-    // Simulate asset loading
+    // Simulate asset loading - replace with real asset loading if needed
     let progress = 0
     const interval = setInterval(() => {
       progress += Math.random() * 15
@@ -210,52 +218,33 @@ function SceneContainer() {
     return () => clearInterval(interval)
   }, [setLoading, setLoadingProgress])
 
-  return (
-    <DynamicCanvas
-      sceneConfig={{
-        fov: 50,
-        near: 0.1,
-        far: 1000,
-        backgroundColor: 0x0a0a0a,
-        enablePostProcessing: true,
-      }}
-      className="fixed inset-0 z-0"
-    >
-      <Suspense fallback={null}>
-        <SceneProvider sceneId="opening">
-          <OpeningScene />
-        </SceneProvider>
-        <SceneProvider sceneId="hero">
-          <HeroScene />
-        </SceneProvider>
-        <SceneProvider sceneId="genesis">
-          <GenesisScene />
-        </SceneProvider>
-        <SceneProvider sceneId="oracle">
-          <OracleScene />
-        </SceneProvider>
-        <SceneProvider sceneId="afterimage">
-          <AfterimageScene />
-        </SceneProvider>
-        <SceneProvider sceneId="finale">
-          <FinaleScene />
-        </SceneProvider>
-      </Suspense>
-    </DynamicCanvas>
-  )
+  return <CanvasWithErrorBoundary />
 }
 
 export default function Home() {
   useLenis()
   useSoundManager()
 
+  // Create scrollable content height for Lenis (6 scenes * 100vh each = 600vh)
+  const scrollHeight = useMemo(() => SCENES.length * 100, [])
+
   return (
-    <div className="relative min-h-screen bg-obsidian overflow-hidden" style={{ backgroundColor: '#0a0a0a' }}>
-      <LoadingScreen />
-      <SceneContainer />
-      <CustomCursor />
-      <SoundToggle />
-      <SceneProgressIndicator />
+    <div className={styles.pageWrapper}>
+      {/* Scrollable content for Lenis */}
+      <div
+        className={styles.scrollContainer}
+        style={{ height: `${scrollHeight}vh` }}
+        aria-hidden="true"
+      />
+
+      {/* Fixed canvas and UI overlay */}
+      <div className={styles.fixedOverlay}>
+        <LoadingScreen />
+        <SceneContainer />
+        <CustomCursor />
+        <SoundToggle />
+        <SceneProgressIndicator />
+      </div>
     </div>
   )
 }

@@ -32,17 +32,32 @@ export function useCustomCursor() {
     handleMouseLeave: () => void;
   }>>(new Map())
 
-  const updateCursor = useCallback(() => {
-    const dx = targetX - x
-    const dy = targetY - y
+  // Use refs for latest values to avoid stale closures
+  const targetXRef = useRef(targetX)
+  const targetYRef = useRef(targetY)
+  const xRef = useRef(x)
+  const yRef = useRef(y)
 
-    const newX = x + dx * 0.15
-    const newY = y + dy * 0.15
+  targetXRef.current = targetX
+  targetYRef.current = targetY
+  xRef.current = x
+  yRef.current = y
+
+  const updateCursor = useCallback(() => {
+    const dx = targetXRef.current - xRef.current
+    const dy = targetYRef.current - yRef.current
+
+    const newX = xRef.current + dx * 0.15
+    const newY = yRef.current + dy * 0.15
 
     setPosition(newX, newY)
 
+    // Update refs
+    xRef.current = newX
+    yRef.current = newY
+
     rafRef.current = requestAnimationFrame(updateCursor)
-  }, [x, y, targetX, targetY, setPosition])
+  }, [setPosition])
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -68,7 +83,9 @@ export function useCustomCursor() {
       window.removeEventListener('mouseup', handleMouseUp)
       window.removeEventListener('mouseenter', handleMouseEnter)
       window.removeEventListener('mouseleave', handleMouseLeave)
-      cancelAnimationFrame(rafRef.current!)
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
     }
   }, [setTargetPosition, setClicking, setVisibility, updateCursor])
 
@@ -120,6 +137,20 @@ export function useCustomCursor() {
       element.removeEventListener('mousemove', data.handleMouseMove)
       element.removeEventListener('mouseleave', data.handleMouseLeave)
       magneticElementsRef.current.delete(element)
+    }
+  }, [])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current)
+      }
+      magneticElementsRef.current.forEach((_, element) => {
+        element.removeEventListener('mousemove', magneticElementsRef.current.get(element)!.handleMouseMove)
+        element.removeEventListener('mouseleave', magneticElementsRef.current.get(element)!.handleMouseLeave)
+      })
+      magneticElementsRef.current.clear()
     }
   }, [])
 
