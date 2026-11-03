@@ -1,7 +1,7 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { useEffect, Suspense } from 'react'
+import { useEffect, Suspense, useState } from 'react'
 import { ThreeCanvas, SceneProvider } from '@/components/three/ThreeCanvas'
 import { OpeningScene } from '@/components/scenes/OpeningScene'
 import { HeroScene } from '@/components/scenes/HeroScene'
@@ -117,9 +117,8 @@ function SoundToggle() {
   )
 }
 
-function SceneProgressIndicator() {
+function SceneProgressIndicator({ scrollTo }: { scrollTo: ReturnType<typeof useLenis>['scrollTo'] }) {
   const { currentScene, sceneProgress, progress } = useScrollStore()
-  const { scrollTo } = useLenis()
   const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
@@ -185,8 +184,6 @@ function SceneProgressIndicator() {
   )
 }
 
-import { useState } from 'react'
-
 function SceneContainer() {
   const sound = useSoundManager()
   const { setLoading, setLoadingProgress } = useUIStore()
@@ -246,16 +243,17 @@ function SceneContainer() {
 }
 
 export default function Home() {
-  useLenis()
+  const { scrollTo } = useLenis()
   useSoundManager()
 
   return (
-    <div className="relative min-h-screen bg-obsidian overflow-hidden" style={{ backgroundColor: '#0a0a0a' }}>
+    <div className="relative min-h-screen bg-obsidian" style={{ backgroundColor: '#0a0a0a' }}>
+      <div className="h-[600vh]" aria-hidden="true" />
       <LoadingScreen />
       <SceneContainer />
       <CustomCursor />
       <SoundToggle />
-      <SceneProgressIndicator />
+      <SceneProgressIndicator scrollTo={scrollTo} />
     </div>
   )
 }

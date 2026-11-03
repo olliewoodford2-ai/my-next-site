@@ -1,0 +1,7 @@
+research/
+compare_frames.py
+code-review-findings.json
+*.DS_Store
+*-REPORT.md
+*-AUDIT.md
+*-MANIFEST.md

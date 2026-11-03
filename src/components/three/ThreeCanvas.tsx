@@ -96,6 +96,7 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
   } = sceneConfig || {}
 
   const { progress, currentScene, sceneProgress } = useScrollStore()
+  const pixelRatio = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio, 2)
 
   const cameraRef = useRef<THREE.Camera>()
   const sceneRef = useRef<THREE.Scene>()
@@ -119,7 +120,7 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
       </Suspense>
 
       {enablePostProcessing && (
-        <EffectComposer multisampling={Math.min(window.devicePixelRatio, 2)}>
+        <EffectComposer multisampling={pixelRatio}>
           <Bloom
             intensity={0.3}
             kernelSize={0.8}
