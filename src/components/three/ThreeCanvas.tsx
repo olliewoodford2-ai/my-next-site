@@ -1,11 +1,9 @@
 'use client'
 
-import { Canvas, extend, useFrame, useThree } from '@react-three/fiber'
+import { Canvas, extend, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import { useMemo, useRef, useEffect, useCallback, Suspense } from 'react'
-import { useScrollStore } from '@/store'
-import { gsap } from 'gsap'
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
 
 extend({
   EffectComposer,
@@ -22,14 +20,6 @@ interface ThreeCanvasProps {
     enablePostProcessing?: boolean
   }
   className?: string
-}
-
-// Internal component to capture camera/scene refs via useFrame (must be INSIDE Canvas)
-function CanvasRefsCapture({ onCapture }: { onCapture: (state: any) => void }) {
-  useFrame((state, delta) => {
-    onCapture(state)
-  })
-  return null
 }
 
 // Separate component to handle Canvas initialization safely
@@ -95,16 +85,10 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
     enablePostProcessing = true,
   } = sceneConfig || {}
 
-  const { progress, currentScene, sceneProgress } = useScrollStore()
-  const pixelRatio = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio, 2)
+  const [pixelRatio, setPixelRatio] = useState(1)
 
-  const cameraRef = useRef<THREE.Camera>()
-  const sceneRef = useRef<THREE.Scene>()
-  const composerRef = useRef<any>()
-
-  const captureRefs = useCallback((state: any) => {
-    cameraRef.current = state.camera
-    sceneRef.current = state.scene
+  useEffect(() => {
+    setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
   }, [])
 
   return (
@@ -118,6 +102,7 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
         overflow: 'visible',
       }}
       camera={{ position: [0, 0, 10], fov, near, far }}
+      dpr={pixelRatio}
       gl={{ preserveDrawingBuffer: false, powerPreference: 'high-performance', antialias: true }}
     >
       <Suspense fallback={null}>
@@ -133,12 +118,11 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
           color={0x6f7fa8}
         />
         {children}
-        <CanvasRefsCapture onCapture={captureRefs} />
         <CanvasInitializer fov={fov} near={near} far={far} backgroundColor={backgroundColor} />
       </Suspense>
 
       {enablePostProcessing && (
-        <EffectComposer multisampling={pixelRatio}>
+        <EffectComposer multisampling={2}>
           <Bloom
             intensity={0.3}
             kernelSize={0.8}
@@ -151,8 +135,6 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
     </Canvas>
   )
 }
-
-import React from 'react'
 
 interface SceneContextValue {
   isActive: boolean

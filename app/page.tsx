@@ -14,7 +14,7 @@ import { SceneProvider } from '@/components/three/ThreeCanvas'
 import { SCENES } from '@/types'
 import { useLenis } from '@/hooks/useLenis'
 import { useSoundManager } from '@/hooks/useSoundManager'
-import { useScrollStore } from '@/store'
+import { useScrollStore, useUIStore } from '@/store'
 
 const DynamicCanvas = dynamic(
   () => import('@/components/three/ThreeCanvas').then((mod) => mod.ThreeCanvas),
@@ -112,12 +112,13 @@ function SoundToggle() {
 }
 
 function FilmNarrative() {
-  const { progress } = useScrollStore()
+  const progress = useScrollStore((state) => state.progress)
+  const reducedMotion = useUIStore((state) => state.reducedMotion)
   const activeBeat = narrativeBeats.findIndex((beat, index) => (
     progress >= beat.start && (progress < beat.end || index === narrativeBeats.length - 1)
   ))
   return (
-    <div className="film-narrative" aria-live="polite">
+    <div className="film-narrative" aria-live="off">
       {narrativeBeats.map((beat, index) => {
         const span = beat.end - beat.start
         const local = Math.min(1, Math.max(0, (progress - beat.start) / span))
@@ -131,7 +132,11 @@ function FilmNarrative() {
             className={`film-beat ${isActive ? 'is-active' : ''}`}
             key={beat.chapter}
             aria-hidden={!isActive}
-            style={{
+            style={reducedMotion ? {
+              opacity: isActive ? 1 : 0,
+              transform: 'none',
+              filter: 'none',
+            } : {
               opacity: visibility,
               transform: `translate3d(0, ${(1 - entrance) * 44 - exit * 26}px, 0) scale(${0.94 + visibility * 0.06})`,
               filter: `blur(${(1 - visibility) * 10}px)`,
