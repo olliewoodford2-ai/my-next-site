@@ -1,7 +1,6 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import Image from 'next/image'
 import { Suspense, useState } from 'react'
 import type { FormEvent } from 'react'
 import { CustomCursor } from '@/components/cursor/CustomCursor'
@@ -214,8 +213,8 @@ export default function Home() {
           <div className="section-heading"><span className="eyebrow">Selected work</span><span className="section-number">04</span></div>
           <div className="work-heading"><h2 id="work-title">Some things<br /><em>we have made.</em></h2><p>A selection of worlds, systems and signals. More to come.</p></div>
           <div className="work-grid">
-            <article className="work-card work-card-large"><Image src="/films/colossus-poster.jpg" alt="Abstract sculptural form from Colossus" fill sizes="(max-width: 700px) 100vw, 65vw" /><div className="work-overlay"><span>01 / Digital film</span><h3>Colossus</h3><p>An exercise in scale, tension and luminous matter.</p></div></article>
-            <article className="work-card"><Image src="/films/reveal-poster.jpg" alt="Atmospheric light study from Reveal" fill sizes="(max-width: 700px) 100vw, 35vw" /><div className="work-overlay"><span>02 / Motion study</span><h3>Reveal</h3><p>Light, held just before it arrives.</p></div></article>
+            <article className="work-card work-card-large"><div className="work-art work-art-colossus" role="img" aria-label="Abstract sculptural form from Colossus" /><div className="work-overlay"><span>01 / Digital film</span><h3>Colossus</h3><p>An exercise in scale, tension and luminous matter.</p></div></article>
+            <article className="work-card"><div className="work-art work-art-reveal" role="img" aria-label="Atmospheric light study from Reveal" /><div className="work-overlay"><span>02 / Motion study</span><h3>Reveal</h3><p>Light, held just before it arrives.</p></div></article>
           </div>
         </section>
 

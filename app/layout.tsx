@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     description: 'An independent creative studio for culture-shaping brands, spaces and ideas.',
     images: [
       {
-        url: '/og.jpg',
+        url: '/og.svg',
         width: 1920,
         height: 1080,
         alt: 'DIVINUM — An immersive digital experience',
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'DIVINUM — Independent Creative Studio',
     description: 'An independent creative studio for culture-shaping brands, spaces and ideas.',
-    images: ['/og.jpg'],
+    images: ['/og.svg'],
   },
   robots: {
     index: true,

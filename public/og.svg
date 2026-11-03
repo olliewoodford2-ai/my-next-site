@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">DIVINUM — Independent Creative Studio</title>
+  <desc id="desc">A dark geometric field with a luminous gold form.</desc>
+  <defs>
+    <radialGradient id="glow" cx="70%" cy="35%" r="65%">
+      <stop offset="0" stop-color="#c9a84c" stop-opacity=".85"/>
+      <stop offset=".35" stop-color="#c9a84c" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#11110f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f0dd9a"/>
+      <stop offset=".45" stop-color="#c9a84c"/>
+      <stop offset="1" stop-color="#6f5420"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#11110f"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <g fill="none" stroke="#e9e4da" stroke-opacity=".22">
+    <path d="M70 90H1130V540H70z"/>
+    <path d="M210 0V630M960 0V630M0 180H1200M0 450H1200"/>
+  </g>
+  <path d="M728 132c115 0 194 83 194 188 0 116-84 190-194 190-109 0-184-74-184-190 0-105 74-188 184-188Z" fill="url(#metal)" opacity=".92"/>
+  <path d="M728 88v72M691 108l37-42 37 42" fill="none" stroke="#e9e4da" stroke-width="8" stroke-linecap="round"/>
+  <text x="88" y="188" fill="#c9a84c" font-family="monospace" font-size="16" letter-spacing="5">DIVINUM / INDEPENDENT CREATIVE STUDIO</text>
+  <text x="88" y="332" fill="#e9e4da" font-family="Georgia, serif" font-size="86">We make</text>
+  <text x="88" y="422" fill="#c9a84c" font-family="Georgia, serif" font-size="86" font-style="italic">meaning move.</text>
+</svg>
