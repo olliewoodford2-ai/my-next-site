@@ -2,32 +2,32 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Pear — not an agency on the clock, a partner in the upside',
-  description: 'Pear makes you appear. Data-driven SEO, tailored software and revenue-share partnerships. Grow your traffic and outrun your competitors.',
-  metadataBase: new URL('https://pear.no'),
+  title: 'DIVINUM — Independent Creative Studio',
+  description: 'DIVINUM explores the intersection of digital art, architecture, fashion, and technology. An avant-garde creative studio based in London.',
+  metadataBase: new URL('https://divinum.studio'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     type: 'website',
-    siteName: 'Pear',
+    siteName: 'DIVINUM',
     url: '/',
-    title: 'Pear — not an agency on the clock, a partner in the upside',
-    description: 'Pear makes you appear. Data-driven SEO, tailored software and revenue-share partnerships.',
+    title: 'DIVINUM — Independent Creative Studio',
+    description: 'DIVINUM explores the intersection of digital art, architecture, fashion, and technology.',
     images: [
       {
         url: '/og.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'A neoclassical painting of a colossal golden pear on a marble pedestal under a cerulean sky',
+        width: 1920,
+        height: 1080,
+        alt: 'DIVINUM — An immersive digital experience',
       },
     ],
-    locale: 'en_US',
+    locale: 'en_GB',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Pear — not an agency on the clock, a partner in the upside',
-    description: 'Pear makes you appear. Data-driven SEO, tailored software and revenue-share partnerships.',
+    title: 'DIVINUM — Independent Creative Studio',
+    description: 'DIVINUM explores the intersection of digital art, architecture, fashion, and technology.',
     images: ['/og.jpg'],
   },
   robots: {
@@ -35,15 +35,17 @@ export const metadata: Metadata = {
     follow: true,
   },
   other: {
-    'color-scheme': 'only light',
-    'theme-color': '#0b0a09',
+    'color-scheme': 'dark',
+    'theme-color': '#0A0A0A',
   },
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#0b0a09',
+  themeColor: '#0A0A0A',
+  maximumScale: 5,
+  userScalable: true,
 }
 
 export default function RootLayout({
@@ -52,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" style={{ scrollbarWidth: 'none' }}>
+    <html lang="en-GB" className="dark" style={{ scrollbarWidth: 'none' }}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
@@ -60,7 +62,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="bg-press antialiased">
+      <body className="bg-obsidian antialiased cursor-none">
         {children}
       </body>
     </html>
