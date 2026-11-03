@@ -531,15 +531,18 @@ h2 { font-size: clamp(3.2rem, 7vw, 7rem); }
 .work-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 1rem; }
 .work-card { position: relative; min-height: 32rem; overflow: hidden; background: #272722; }
 .work-card-large { min-height: 42rem; }
-.work-art { position: absolute; inset: 0; overflow: hidden; transition: transform 1.2s var(--ease-cinematic), filter .5s ease; }
-.work-art::before, .work-art::after { content: ''; position: absolute; pointer-events: none; }
-.work-art-colossus { background: radial-gradient(circle at 62% 42%, rgba(201,168,76,.88) 0 7%, transparent 7.5%), radial-gradient(circle at 62% 42%, rgba(201,168,76,.18) 0 18%, transparent 42%), linear-gradient(135deg, #121b22 0%, #243843 48%, #080b0f 100%); }
-.work-art-colossus::before { width: 58%; height: 145%; left: 36%; top: -18%; border: 1px solid rgba(233,228,218,.35); transform: rotate(28deg); box-shadow: 0 0 90px rgba(201,168,76,.2), inset 0 0 70px rgba(201,168,76,.1); }
-.work-art-colossus::after { inset: 8%; border: 1px solid rgba(233,228,218,.13); transform: skewY(-8deg); }
-.work-art-reveal { background: radial-gradient(circle at 34% 64%, rgba(233,228,218,.88) 0 2%, transparent 2.5%), radial-gradient(circle at 34% 64%, rgba(201,168,76,.32) 0 16%, transparent 38%), linear-gradient(155deg, #2b2023, #11110f 62%); }
-.work-art-reveal::before { width: 1px; height: 130%; left: 34%; top: -15%; background: linear-gradient(transparent, var(--accent), transparent); transform: rotate(22deg); box-shadow: 0 0 32px rgba(201,168,76,.75); }
-.work-art-reveal::after { width: 70%; height: 70%; right: -15%; bottom: -28%; border: 1px solid rgba(233,228,218,.28); border-radius: 50%; transform: rotate(-24deg); }
-.work-card:hover .work-art { transform: scale(1.04); filter: saturate(1.15) contrast(1.08); }
+.browser-window { position: absolute; inset: 1.4rem; overflow: hidden; border: 1px solid rgba(233,228,218,.35); background: #d7d2c8; box-shadow: 0 1.5rem 4rem rgba(0,0,0,.32); transition: transform 1.2s var(--ease-cinematic), filter .5s ease; }
+.browser-window > span { position: relative; z-index: 1; display: inline-block; width: .42rem; height: .42rem; margin: .75rem .12rem 0; border-radius: 50%; background: rgba(17,17,15,.45); }
+.browser-window > span:first-child { margin-left: .85rem; }
+.browser-preview-mark { position: absolute; inset: 30% 10% auto; color: #24231f; font-family: var(--font-editorial); font-size: clamp(2rem, 5vw, 5rem); letter-spacing: -.05em; line-height: .8; }
+.browser-preview-line { position: absolute; left: 10%; right: 10%; bottom: 18%; height: 1px; background: rgba(36,35,31,.45); }
+.browser-window-aurelle { background: linear-gradient(145deg, #d9d4c8 0%, #a9a18f 55%, #6f766b 100%); }
+.browser-window-aurelle::after, .browser-window-aviation::after { content: ''; position: absolute; width: 48%; height: 65%; right: -8%; bottom: -18%; border: 1px solid rgba(36,35,31,.5); border-radius: 50%; transform: rotate(-22deg); }
+.browser-window-aviation { background: linear-gradient(145deg, #dce5e8 0%, #9ab0b9 50%, #304752 100%); }
+.browser-window-aviation .browser-preview-mark { color: #10232c; }
+.browser-window-aviation .browser-preview-line { background: rgba(16,35,44,.5); }
+.browser-window-aviation::after { border-color: rgba(220,229,232,.65); border-radius: 0; transform: rotate(24deg); }
+.work-card:hover .browser-window { transform: scale(1.035) translateY(-.3rem); filter: saturate(1.12) contrast(1.04); }
 .work-overlay { position: absolute; inset: auto 1.5rem 1.5rem; z-index: 1; text-shadow: 0 1px 18px rgba(0,0,0,.4); }
 .work-overlay span, .venture-status { color: var(--accent); font-family: var(--font-mono); font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; }
 .work-overlay h3 { margin: .5rem 0 .3rem; font-family: var(--font-editorial); font-size: 2.4rem; font-weight: 400; }
@@ -613,5 +616,5 @@ h2 { font-size: clamp(3.2rem, 7vw, 7rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .main-nav, .work-art, .service-row, .venture-card { transition: none; }
+  .main-nav, .browser-window, .service-row, .venture-card { transition: none; }
 }

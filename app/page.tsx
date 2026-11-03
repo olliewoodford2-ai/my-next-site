@@ -110,7 +110,9 @@ function SoundToggle() {
 function CinematicCaption() {
   const { currentScene, sceneProgress } = useScrollStore()
   const [title, detail] = sceneCaptions[currentScene]
-  const reveal = Math.min(1, Math.max(0, sceneProgress * 2.4))
+  const entrance = Math.min(1, Math.max(0, sceneProgress * 3.2))
+  const exit = Math.min(1, Math.max(0, (sceneProgress - 0.72) * 3.6))
+  const reveal = entrance * (1 - exit)
 
   return (
     <div
@@ -119,7 +121,8 @@ function CinematicCaption() {
       key={currentScene}
       style={{
         opacity: reveal,
-        transform: `translate3d(0, ${(1 - reveal) * 28}px, 0)`,
+        transform: `translate3d(0, ${(1 - entrance) * 30 - exit * 18}px, 0) scale(${0.96 + reveal * 0.04})`,
+        filter: `blur(${(1 - reveal) * 8}px)`,
       }}
     >
       <span className="scene-caption-detail">{detail}</span>
@@ -214,8 +217,14 @@ export default function Home() {
           <div className="section-heading"><span className="eyebrow">Selected work</span><span className="section-number">04</span></div>
           <div className="work-heading"><h2 id="work-title">Some things<br /><em>we have made.</em></h2><p>A selection of worlds, systems and signals. More to come.</p></div>
           <div className="work-grid">
-            <article className="work-card work-card-large"><div className="work-art work-art-colossus" role="img" aria-label="Abstract sculptural form from Colossus" /><div className="work-overlay"><span>01 / Digital film</span><h3>Colossus</h3><p>An exercise in scale, tension and luminous matter.</p></div></article>
-            <article className="work-card"><div className="work-art work-art-reveal" role="img" aria-label="Atmospheric light study from Reveal" /><div className="work-overlay"><span>02 / Motion study</span><h3>Reveal</h3><p>Light, held just before it arrives.</p></div></article>
+            <a className="work-card work-card-large browser-preview" href="https://olliewoodford2-ai.github.io/Maison-Aurelle/" target="_blank" rel="noreferrer">
+              <div className="browser-window browser-window-aurelle" aria-hidden="true"><span /><span /><span /><div className="browser-preview-mark">MAISON<br />AURELLE</div><div className="browser-preview-line" /></div>
+              <div className="work-overlay"><span>01 / Maison Aurelle</span><h3>Maison Aurelle</h3><p>A quiet study in modern hospitality, material and ritual. Visit the live site ↗</p></div>
+            </a>
+            <a className="work-card browser-preview" href="https://olliewoodford2-ai.github.io/demo-private-aviation-website/" target="_blank" rel="noreferrer">
+              <div className="browser-window browser-window-aviation" aria-hidden="true"><span /><span /><span /><div className="browser-preview-mark">PRIVATE<br />AVIATION</div><div className="browser-preview-line" /></div>
+              <div className="work-overlay"><span>02 / Private Aviation</span><h3>Private Aviation</h3><p>A considered digital presence for travel without compromise. Visit the live site ↗</p></div>
+            </a>
           </div>
         </section>
 

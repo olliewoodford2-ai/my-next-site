@@ -72,7 +72,7 @@ export function useLenis() {
         return
       }
 
-      const progress = e.scroll / e.limit
+      const progress = Math.max(0, Math.min(1, e.scroll / e.limit))
       const { currentScene, sceneProgress } = calculateScene(progress)
       const velocity = Math.abs(e.velocity)
       const direction = e.direction > 0 ? 'down' : e.direction < 0 ? 'up' : 'none'
@@ -114,6 +114,25 @@ export function useLenis() {
 
     lenisRef.current = lenisInstance!
     lenisInstance!.on('scroll', onScroll)
+    lenisInstance!.resize()
+
+    const syncInitialScroll = () => {
+      const scroll = lenisInstance?.scroll ?? window.scrollY
+      const limit = lenisInstance?.limit ?? Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+      if (limit > 0) {
+        onScroll({ scroll, limit, velocity: 0, direction: 0 })
+      }
+    }
+
+    const resize = () => {
+      lenisInstance?.resize()
+      syncInitialScroll()
+    }
+
+    window.addEventListener('resize', resize)
+    const observer = new ResizeObserver(resize)
+    observer.observe(document.documentElement)
+    syncInitialScroll()
 
     const animate = (time: number) => {
       lenisInstance!.raf(time)
@@ -135,6 +154,8 @@ export function useLenis() {
 
     return () => {
       lenisSubscribers.delete(cleanup)
+      window.removeEventListener('resize', resize)
+      observer.disconnect()
       // Only actually destroy if no more subscribers
       if (lenisSubscribers.size === 0 && lenisInstance) {
         lenisInstance.off('scroll', onScroll)
@@ -155,7 +176,10 @@ export function useLenis() {
   const scrollTo = useCallback(
     (target: number | string, options?: { duration?: number; easing?: (t: number) => number }) => {
       if (lenisInstance) {
-        lenisInstance.scrollTo(target, options)
+        const destination = typeof target === 'number' && target >= 0 && target <= 1
+          ? target * lenisInstance.limit
+          : target
+        lenisInstance.scrollTo(destination, options)
       }
     },
     []
