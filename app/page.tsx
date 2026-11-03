@@ -36,14 +36,18 @@ const services = [
   ['04', 'Brand worlds', 'The language, visual system and launch moments that give ambitious work a longer life.'],
 ]
 
-const sceneCaptions = {
-  opening: ['Enter the impossible', 'A studio for the unseen'],
-  hero: ['Meaning takes form', '01 / 06 — Hero'],
-  genesis: ['Form, in motion', '02 / 06 — Genesis'],
-  oracle: ['A signal, held', '03 / 06 — Oracle'],
-  afterimage: ['What remains moves', '04 / 06 — Afterimage'],
-  finale: ['Leave a trace', '05 / 06 — Finale'],
-} as const
+const narrativeBeats = [
+  { start: 0, end: 0.055, chapter: 'Prologue / 01', title: 'Everything beautiful begins with an impossibility.', body: 'Enter the unseen.' },
+  { start: 0.055, end: 0.15, chapter: 'Prologue / 02', title: 'A studio for the unseen.', body: 'Ideas with gravity. Experiences with afterimage.' },
+  { start: 0.15, end: 0.3, chapter: 'Hero / 01', title: 'Meaning takes form.', body: 'A point of view you can feel before you can name it.' },
+  { start: 0.3, end: 0.4, chapter: 'Genesis / 01', title: 'Make the invisible move.', body: 'Identity becomes atmosphere.' },
+  { start: 0.4, end: 0.5, chapter: 'Genesis / 02', title: 'Build worlds with a pulse.', body: 'Motion, material, signal.' },
+  { start: 0.5, end: 0.6, chapter: 'Oracle / 01', title: 'Hold the gaze.', body: 'The detail is the direction.' },
+  { start: 0.6, end: 0.7, chapter: 'Oracle / 02', title: 'Give the feeling somewhere to go.', body: 'Interface as intuition.' },
+  { start: 0.7, end: 0.85, chapter: 'Afterimage / 01', title: 'What remains moves.', body: 'A memory is still an interaction.' },
+  { start: 0.85, end: 0.94, chapter: 'Finale / 01', title: 'Leave a trace.', body: 'Make something that should not exist.' },
+  { start: 0.94, end: 1, chapter: 'Finale / 02', title: 'Begin a project.', body: 'DIVINUM / London · Everywhere' },
+] as const
 
 function SceneContainer() {
   return (
@@ -107,27 +111,40 @@ function SoundToggle() {
   )
 }
 
-function CinematicCaption() {
-  const { currentScene, sceneProgress } = useScrollStore()
-  const [title, detail] = sceneCaptions[currentScene]
-  const entrance = Math.min(1, Math.max(0, sceneProgress * 3.2))
-  const exit = Math.min(1, Math.max(0, (sceneProgress - 0.72) * 3.6))
-  const reveal = entrance * (1 - exit)
-
+function FilmNarrative() {
+  const { progress } = useScrollStore()
+  const activeBeat = narrativeBeats.findIndex((beat, index) => (
+    progress >= beat.start && (progress < beat.end || index === narrativeBeats.length - 1)
+  ))
   return (
-    <div
-      className="scene-caption"
-      aria-hidden="true"
-      key={currentScene}
-      style={{
-        opacity: reveal,
-        transform: `translate3d(0, ${(1 - entrance) * 30 - exit * 18}px, 0) scale(${0.96 + reveal * 0.04})`,
-        filter: `blur(${(1 - reveal) * 8}px)`,
-      }}
-    >
-      <span className="scene-caption-detail">{detail}</span>
-      <strong>{title}</strong>
-      <span className="scene-caption-line" />
+    <div className="film-narrative" aria-live="polite">
+      {narrativeBeats.map((beat, index) => {
+        const span = beat.end - beat.start
+        const local = Math.min(1, Math.max(0, (progress - beat.start) / span))
+        const entrance = Math.min(1, local / 0.2)
+        const exit = Math.min(1, Math.max(0, (local - 0.78) / 0.22))
+        const visibility = entrance * (1 - exit)
+        const isActive = index === activeBeat
+
+        return (
+          <div
+            className={`film-beat ${isActive ? 'is-active' : ''}`}
+            key={beat.chapter}
+            aria-hidden={!isActive}
+            style={{
+              opacity: visibility,
+              transform: `translate3d(0, ${(1 - entrance) * 44 - exit * 26}px, 0) scale(${0.94 + visibility * 0.06})`,
+              filter: `blur(${(1 - visibility) * 10}px)`,
+            }}
+          >
+            <span className="film-beat-chapter">{beat.chapter}</span>
+            <strong>{beat.title}</strong>
+            <span className="film-beat-body">{beat.body}</span>
+            <span className="scene-caption-line" />
+          </div>
+        )
+      })}
+      <div className="film-progress" aria-hidden="true"><span style={{ transform: `scaleX(${progress})` }} /></div>
     </div>
   )
 }
@@ -171,7 +188,7 @@ export default function Home() {
       <a className="skip-link" href="#main">Skip to content</a>
       <SceneContainer />
       <div className="canvas-scrim" aria-hidden="true" />
-      <CinematicCaption />
+      <FilmNarrative />
       <CustomCursor />
 
       <header className="site-header">

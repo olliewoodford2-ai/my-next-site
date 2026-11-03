@@ -22,7 +22,7 @@ export function OpeningScene() {
   const animationRef = useRef<gsap.core.Timeline>()
   const hasAnimatedRef = useRef(false)
 
-  const orbGeometry = useMemo(() => new THREE.SphereGeometry(0.5, 64, 64), [])
+  const orbGeometry = useMemo(() => new THREE.SphereGeometry(0.95, 64, 64), [])
   const orbMaterial = useMemo(
     () =>
       new THREE.MeshPhysicalMaterial({
@@ -93,10 +93,10 @@ export function OpeningScene() {
 
       animationRef.current
         .to(orbRef.current?.scale || { x: 0, y: 0, z: 0 }, {
-          x: 1,
-          y: 1,
-          z: 1,
-          duration: 2,
+          x: 2.8,
+          y: 2.8,
+          z: 2.8,
+          duration: 0.6,
           ease: 'elastic.out(1, 0.5)',
         })
         .to(
@@ -107,7 +107,7 @@ export function OpeningScene() {
             b: 76 / 255,
             metalness: 0.8,
             roughness: 0.2,
-            duration: 3,
+            duration: 1.2,
             onUpdate: function () {
               const target = this.targets()[0]
               if (orbMaterial) {
@@ -124,7 +124,7 @@ export function OpeningScene() {
           {
             opacity: 0.8,
             size: 4,
-            duration: 2,
+            duration: 0.8,
           },
           '-=2'
         )
@@ -132,7 +132,7 @@ export function OpeningScene() {
           { value: 0 },
           {
             value: 2,
-            duration: 2,
+            duration: 0.8,
             onUpdate: function () {
               if (lightRef.current) lightRef.current.intensity = this.targets()[0].value
             },
@@ -202,11 +202,11 @@ export function OpeningScene() {
     const textEl = textRef.current
     if (!textEl) return
 
-    if (isActive && progress > 0.3) {
+    if (isActive && progress > 0.04) {
       gsap.to(textEl, {
         opacity: 1,
         y: 0,
-        duration: 2,
+        duration: 0.7,
         ease: 'power2.out',
       })
     } else {
