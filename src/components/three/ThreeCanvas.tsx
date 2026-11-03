@@ -4,6 +4,7 @@ import { Canvas, extend, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useScrollStore } from '@/store'
 
 extend({
   EffectComposer,
