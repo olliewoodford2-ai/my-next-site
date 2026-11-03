@@ -110,6 +110,13 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
   return (
     <Canvas
       className={className}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100vh',
+        overflow: 'visible',
+      }}
       camera={{ position: [0, 0, 10], fov, near, far }}
       gl={{ preserveDrawingBuffer: false, powerPreference: 'high-performance', antialias: true }}
     >
