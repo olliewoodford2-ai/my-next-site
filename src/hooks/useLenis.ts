@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import Lenis from 'lenis'
 import { useScrollStore } from '@/store'
 import { useUIStore } from '@/store'
@@ -9,34 +9,28 @@ import { SCENES } from '@/types'
 // Singleton Lenis instance - only created once
 let lenisInstance: Lenis | null = null
 let lenisInitialized = false
-const subscribers = new Set<() => void>()
-
-function notifySubscribers() {
-  subscribers.forEach((cb) => cb())
-}
-
-// Store for sync external store
-const lenisStore = {
-  subscribe: (callback: () => void) => {
-    subscribers.add(callback)
-    return () => subscribers.delete(callback)
-  },
-  getSnapshot: () => ({ lenis: lenisInstance }),
-  getServerSnapshot: () => ({ lenis: null }),
-}
 
 export function useLenis() {
   const rafRef = useRef<number>()
   const scrollTimeoutRef = useRef<NodeJS.Timeout>()
 
-  const {
-    setProgress,
-    setCurrentScene,
-    setSceneProgress,
-    setVelocity,
-    setDirection,
-    setIsScrolling,
-  } = useScrollStore()
+  // Use refs for stable access to store setters
+  const setProgressRef = useRef(useScrollStore.getState().setProgress)
+  const setCurrentSceneRef = useRef(useScrollStore.getState().setCurrentScene)
+  const setSceneProgressRef = useRef(useScrollStore.getState().setSceneProgress)
+  const setVelocityRef = useRef(useScrollStore.getState().setVelocity)
+  const setDirectionRef = useRef(useScrollStore.getState().setDirection)
+  const setIsScrollingRef = useRef(useScrollStore.getState().setIsScrolling)
+
+  // Keep refs updated
+  useEffect(() => {
+    setProgressRef.current = useScrollStore.getState().setProgress
+    setCurrentSceneRef.current = useScrollStore.getState().setCurrentScene
+    setSceneProgressRef.current = useScrollStore.getState().setSceneProgress
+    setVelocityRef.current = useScrollStore.getState().setVelocity
+    setDirectionRef.current = useScrollStore.getState().setDirection
+    setIsScrollingRef.current = useScrollStore.getState().setIsScrolling
+  })
 
   const { setReducedMotion } = useUIStore()
 
@@ -70,12 +64,12 @@ export function useLenis() {
     (e: { scroll: number; limit: number; velocity: number; direction: number }) => {
       // Guard against division by zero when page has no scrollable content
       if (e.limit === 0) {
-        setProgress(0)
-        setCurrentScene('opening')
-        setSceneProgress(0)
-        setVelocity(0)
-        setDirection('none')
-        setIsScrolling(false)
+        setProgressRef.current(0)
+        setCurrentSceneRef.current('opening')
+        setSceneProgressRef.current(0)
+        setVelocityRef.current(0)
+        setDirectionRef.current('none')
+        setIsScrollingRef.current(false)
         return
       }
 
@@ -84,22 +78,22 @@ export function useLenis() {
       const velocity = Math.abs(e.velocity)
       const direction = e.direction > 0 ? 'down' : e.direction < 0 ? 'up' : 'none'
 
-      setProgress(progress)
-      setCurrentScene(currentScene)
-      setSceneProgress(sceneProgress)
-      setVelocity(velocity)
-      setDirection(direction)
-      setIsScrolling(true)
+      setProgressRef.current(progress)
+      setCurrentSceneRef.current(currentScene)
+      setSceneProgressRef.current(sceneProgress)
+      setVelocityRef.current(velocity)
+      setDirectionRef.current(direction)
+      setIsScrollingRef.current(true)
 
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current)
       }
 
       scrollTimeoutRef.current = setTimeout(() => {
-        setIsScrolling(false)
+        setIsScrollingRef.current(false)
       }, 150)
     },
-    [calculateScene, setProgress, setCurrentScene, setSceneProgress, setVelocity, setDirection, setIsScrolling]
+    [calculateScene]
   )
 
   // Initialize Lenis singleton - only once
@@ -126,7 +120,6 @@ export function useLenis() {
       }
 
       rafRef.current = requestAnimationFrame(animate)
-      notifySubscribers()
     }
 
     return () => {
@@ -170,12 +163,6 @@ export function useLenis() {
     }
   }, [])
 
-  // Use sync external store to get the singleton instance
-  const { lenis } = useSyncExternalStore(
-    lenisStore.subscribe,
-    lenisStore.getSnapshot,
-    lenisStore.getServerSnapshot
-  )
-
-  return { lenis, scrollTo, scrollToProgress, stop }
+  // Return stable functions - lenis instance not needed by consumers
+  return { scrollTo, scrollToProgress, stop }
 }

@@ -3,19 +3,29 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useSoundStore } from '@/store'
 
+// Stable selectors for sound store
+const selectIsMuted = (state: ReturnType<typeof useSoundStore>) => state.isMuted
+const selectMasterVolume = (state: ReturnType<typeof useSoundStore>) => state.masterVolume
+const selectAmbientVolume = (state: ReturnType<typeof useSoundStore>) => state.ambientVolume
+const selectEffectsVolume = (state: ReturnType<typeof useSoundStore>) => state.effectsVolume
+const selectMusicVolume = (state: ReturnType<typeof useSoundStore>) => state.musicVolume
+const selectSetMute = (state: ReturnType<typeof useSoundStore>) => state.setMute
+const selectSetMasterVolume = (state: ReturnType<typeof useSoundStore>) => state.setMasterVolume
+const selectSetAmbientVolume = (state: ReturnType<typeof useSoundStore>) => state.setAmbientVolume
+const selectSetEffectsVolume = (state: ReturnType<typeof useSoundStore>) => state.setEffectsVolume
+const selectSetMusicVolume = (state: ReturnType<typeof useSoundStore>) => state.setMusicVolume
+
 export function useSoundManager() {
-  const {
-    isMuted,
-    masterVolume,
-    ambientVolume,
-    effectsVolume,
-    musicVolume,
-    setMute,
-    setMasterVolume,
-    setAmbientVolume,
-    setEffectsVolume,
-    setMusicVolume,
-  } = useSoundStore()
+  const isMuted = useSoundStore(selectIsMuted)
+  const masterVolume = useSoundStore(selectMasterVolume)
+  const ambientVolume = useSoundStore(selectAmbientVolume)
+  const effectsVolume = useSoundStore(selectEffectsVolume)
+  const musicVolume = useSoundStore(selectMusicVolume)
+  const setMute = useSoundStore(selectSetMute)
+  const setMasterVolume = useSoundStore(selectSetMasterVolume)
+  const setAmbientVolume = useSoundStore(selectSetAmbientVolume)
+  const setEffectsVolume = useSoundStore(selectSetEffectsVolume)
+  const setMusicVolume = useSoundStore(selectSetMusicVolume)
 
   const audioContextRef = useRef<AudioContext | null>(null)
   const ambientGainRef = useRef<GainNode | null>(null)

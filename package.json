@@ -26,6 +26,7 @@
     "zustand": "^4.5.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/gsap": "^1.20.2",
     "@types/node": "20.19.43",
     "@types/react": "18.3.31",
