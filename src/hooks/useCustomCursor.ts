@@ -25,6 +25,8 @@ export function useCustomCursor() {
   } = useCursorStore()
 
   const rafRef = useRef<number>()
+  const positionRef = useRef({ x, y })
+  const targetRef = useRef({ x: targetX, y: targetY })
   const magneticElementsRef = useRef<Map<HTMLElement, {
     strength: number;
     radius: number;
@@ -32,17 +34,22 @@ export function useCustomCursor() {
     handleMouseLeave: () => void;
   }>>(new Map())
 
+  useEffect(() => {
+    positionRef.current = { x, y }
+    targetRef.current = { x: targetX, y: targetY }
+  }, [x, y, targetX, targetY])
+
   const updateCursor = useCallback(() => {
-    const dx = targetX - x
-    const dy = targetY - y
+    const dx = targetRef.current.x - positionRef.current.x
+    const dy = targetRef.current.y - positionRef.current.y
+    const newX = positionRef.current.x + dx * 0.15
+    const newY = positionRef.current.y + dy * 0.15
 
-    const newX = x + dx * 0.15
-    const newY = y + dy * 0.15
-
+    positionRef.current = { x: newX, y: newY }
     setPosition(newX, newY)
 
     rafRef.current = requestAnimationFrame(updateCursor)
-  }, [x, y, targetX, targetY, setPosition])
+  }, [setPosition])
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {

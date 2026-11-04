@@ -1,30 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Playfair_Display, Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
-
-const playfairDisplay = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-editorial',
-  display: 'swap',
-  preload: true,
-})
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600'],
-  variable: '--font-sans',
-  display: 'swap',
-  preload: true,
-})
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500'],
-  variable: '--font-mono',
-  display: 'swap',
-  preload: true,
-})
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://my-next-site-eta.vercel.app'),
@@ -79,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en-GB" className={`${playfairDisplay.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} dark`}>
+    <html lang="en-GB" className="dark">
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />

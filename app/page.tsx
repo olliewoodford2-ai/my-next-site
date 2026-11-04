@@ -1,8 +1,8 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { Suspense, useState } from 'react'
-import type { FormEvent } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
 import { CustomCursor } from '@/components/cursor/CustomCursor'
 import { AfterimageScene } from '@/components/scenes/AfterimageScene'
 import { FinaleScene } from '@/components/scenes/FinaleScene'
@@ -187,9 +187,28 @@ function EnquiryForm() {
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const currentScene = useScrollStore((state) => state.currentScene)
+
+  useEffect(() => {
+    const revealElements = Array.from(document.querySelectorAll<HTMLElement>('[data-reveal]'))
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.12 },
+    )
+
+    revealElements.forEach((element) => observer.observe(element))
+    return () => observer.disconnect()
+  }, [])
 
   return (
-    <div className="site-shell">
+    <div className={`site-shell scene-${currentScene}`}>
       <a className="skip-link" href="#main">Skip to content</a>
       <SceneContainer />
       <div className="canvas-scrim" aria-hidden="true" />
@@ -213,9 +232,9 @@ export default function Home() {
         <section className="hero section-shell" id="home" aria-labelledby="hero-title">
           <div className="hero-copy">
             <p className="eyebrow">Independent creative studio / London — worldwide</p>
-            <h1 id="hero-title">We make<br /><em>meaning</em> move.</h1>
-            <p className="hero-intro">DIVINUM is a creative studio for culture-shaping brands, spaces and ideas. We build identities and digital experiences with presence.</p>
-            <a className="text-link" href="#enquiries">Start a conversation <span aria-hidden="true">↗</span></a>
+            <h1 id="hero-title" data-reveal="hero">We make<br /><em>meaning</em> move.</h1>
+            <p className="hero-intro" data-reveal="hero" style={{ '--reveal-delay': '120ms' } as CSSProperties}>DIVINUM is a creative studio for culture-shaping brands, spaces and ideas. We build identities and digital experiences with presence.</p>
+            <a className="text-link" data-reveal="hero" style={{ '--reveal-delay': '220ms' } as CSSProperties} href="#enquiries">Start a conversation <span aria-hidden="true">↗</span></a>
           </div>
           <div className="hero-meta"><span>Scroll to explore</span><span className="scroll-line" aria-hidden="true" /></div>
           <div className="hero-index">01 <span>/</span> 06</div>
@@ -224,26 +243,26 @@ export default function Home() {
         <section className="content-section studio section-shell" id="studio" aria-labelledby="studio-title">
           <div className="section-heading"><span className="eyebrow">The studio</span><span className="section-number">02</span></div>
           <div className="studio-grid">
-            <h2 id="studio-title">A small studio<br /><em>with a wide lens.</em></h2>
-            <div className="studio-copy"><p>We work at the meeting point of image, interface and atmosphere. Every engagement begins with a question: what should this feel like in the world?</p><p>From first thought to final detail, DIVINUM pairs strategic clarity with an instinct for the unexpected. The result is work that earns attention, then keeps it.</p><a className="text-link" href="#services">Our capabilities <span aria-hidden="true">↓</span></a></div>
+            <h2 id="studio-title" data-reveal>A small studio<br /><em>with a wide lens.</em></h2>
+            <div className="studio-copy" data-reveal style={{ '--reveal-delay': '160ms' } as CSSProperties}><p>We work at the meeting point of image, interface and atmosphere. Every engagement begins with a question: what should this feel like in the world?</p><p>From first thought to final detail, DIVINUM pairs strategic clarity with an instinct for the unexpected. The result is work that earns attention, then keeps it.</p><a className="text-link" href="#services">Our capabilities <span aria-hidden="true">↓</span></a></div>
           </div>
         </section>
 
         <section className="content-section services section-shell" id="services" aria-labelledby="services-title">
           <div className="section-heading"><span className="eyebrow">What we do</span><span className="section-number">03</span></div>
           <div className="services-intro"><h2 id="services-title">Built for<br /><em>the next feeling.</em></h2><p>We bring the right disciplines together around one sharp idea — and stay close enough to make it real.</p></div>
-          <div className="services-list">{services.map(([number, title, copy]) => <article className="service-row" key={number}><span className="service-number">{number}</span><h3>{title}</h3><p>{copy}</p><span className="service-arrow" aria-hidden="true">↗</span></article>)}</div>
+          <div className="services-list">{services.map(([number, title, copy], index) => <article className="service-row" data-reveal key={number} style={{ '--reveal-delay': `${index * 70}ms` } as CSSProperties}><span className="service-number">{number}</span><h3>{title}</h3><p>{copy}</p><span className="service-arrow" aria-hidden="true">↗</span></article>)}</div>
         </section>
 
         <section className="content-section work section-shell" id="work" aria-labelledby="work-title">
           <div className="section-heading"><span className="eyebrow">Selected work</span><span className="section-number">04</span></div>
           <div className="work-heading"><h2 id="work-title">Some things<br /><em>we have made.</em></h2><p>A selection of worlds, systems and signals. More to come.</p></div>
           <div className="work-grid">
-            <a className="work-card work-card-large browser-preview" href="https://olliewoodford2-ai.github.io/Maison-Aurelle/" target="_blank" rel="noreferrer">
+            <a className="work-card work-card-large browser-preview" data-reveal href="https://olliewoodford2-ai.github.io/Maison-Aurelle/" target="_blank" rel="noreferrer">
               <div className="browser-window browser-window-aurelle" aria-hidden="true"><span /><span /><span /><div className="browser-preview-mark">MAISON<br />AURELLE</div><div className="browser-preview-line" /></div>
               <div className="work-overlay"><span>01 / Maison Aurelle</span><h3>Maison Aurelle</h3><p>A quiet study in modern hospitality, material and ritual. Visit the live site ↗</p></div>
             </a>
-            <a className="work-card browser-preview" href="https://olliewoodford2-ai.github.io/demo-private-aviation-website/" target="_blank" rel="noreferrer">
+            <a className="work-card browser-preview" data-reveal style={{ '--reveal-delay': '120ms' } as CSSProperties} href="https://olliewoodford2-ai.github.io/demo-private-aviation-website/" target="_blank" rel="noreferrer">
               <div className="browser-window browser-window-aviation" aria-hidden="true"><span /><span /><span /><div className="browser-preview-mark">PRIVATE<br />AVIATION</div><div className="browser-preview-line" /></div>
               <div className="work-overlay"><span>02 / Private Aviation</span><h3>Private Aviation</h3><p>A considered digital presence for travel without compromise. Visit the live site ↗</p></div>
             </a>
@@ -254,12 +273,12 @@ export default function Home() {
           <div className="section-heading"><span className="eyebrow">Associated ventures</span><span className="section-number">05</span></div>
           <div className="ventures-heading"><h2 id="ventures-title">Independent ideas,<br /><em>carefully considered.</em></h2><p>Alongside client work, we are building a small constellation of self-initiated worlds, each with its own atmosphere and point of view.</p></div>
           <div className="venture-grid">
-            <a className="venture-card" href="https://olliewoodford2-ai.github.io/Maison-Aurelle/" target="_blank" rel="noreferrer">
+            <a className="venture-card" data-reveal href="https://olliewoodford2-ai.github.io/Maison-Aurelle/" target="_blank" rel="noreferrer">
               <div className="venture-mark">MA</div>
               <div><span className="eyebrow">Associated project</span><h3>Maison Aurelle</h3><p>A quiet study in modern hospitality, material and ritual.</p></div>
               <span className="venture-status">Visit project ↗</span>
             </a>
-            <a className="venture-card" href="https://olliewoodford2-ai.github.io/demo-private-aviation-website/" target="_blank" rel="noreferrer">
+            <a className="venture-card" data-reveal style={{ '--reveal-delay': '120ms' } as CSSProperties} href="https://olliewoodford2-ai.github.io/demo-private-aviation-website/" target="_blank" rel="noreferrer">
               <div className="venture-mark">PA</div>
               <div><span className="eyebrow">Associated project</span><h3>Private Aviation</h3><p>A considered digital presence for travel without compromise.</p></div>
               <span className="venture-status">Visit project ↗</span>
@@ -269,7 +288,7 @@ export default function Home() {
 
         <section className="content-section enquiries section-shell" id="enquiries" aria-labelledby="enquiries-title">
           <div className="section-heading"><span className="eyebrow">Enquiries</span><span className="section-number">06</span></div>
-          <div className="enquiry-grid">                    <div><h2 id="enquiries-title">Have a good<br /><em>feeling?</em></h2><p className="enquiry-lead">Tell us what is taking shape. We will come back with a considered point of view — usually within three working days.</p><div className="direct-contact"><span className="eyebrow">Direct enquiries</span><p><a className="text-link" href="mailto:studio@divinum.studio">studio@divinum.studio <span aria-hidden="true">↗</span></a></p></div></div><EnquiryForm /></div>
+          <div className="enquiry-grid">                    <div data-reveal><h2 id="enquiries-title">Have a good<br /><em>feeling?</em></h2><p className="enquiry-lead">Tell us what is taking shape. We will come back with a considered point of view — usually within three working days.</p><div className="direct-contact"><span className="eyebrow">Direct enquiries</span><p><a className="text-link" href="mailto:studio@divinum.studio">studio@divinum.studio <span aria-hidden="true">↗</span></a></p></div></div><div data-reveal style={{ '--reveal-delay': '140ms' } as CSSProperties}><EnquiryForm /></div></div>
         </section>
       </main>
 

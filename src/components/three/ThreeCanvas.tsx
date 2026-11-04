@@ -89,7 +89,8 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
   const [pixelRatio, setPixelRatio] = useState(1)
 
   useEffect(() => {
-    setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+    const isSmallViewport = window.matchMedia('(max-width: 800px)').matches
+    setPixelRatio(Math.min(window.devicePixelRatio || 1, isSmallViewport ? 1.35 : 1.75))
   }, [])
 
   return (
@@ -104,7 +105,7 @@ export function ThreeCanvas({ children, sceneConfig, className }: ThreeCanvasPro
       }}
       camera={{ position: [0, 0, 10], fov, near, far }}
       dpr={pixelRatio}
-      gl={{ preserveDrawingBuffer: false, powerPreference: 'high-performance', antialias: true }}
+      gl={{ preserveDrawingBuffer: false, powerPreference: 'high-performance', antialias: pixelRatio <= 1.5 }}
     >
       <Suspense fallback={null}>
         <ambientLight intensity={0.18} color={0x8f8aa0} />
